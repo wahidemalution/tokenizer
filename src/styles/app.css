@@ -60,7 +60,7 @@
   }
 }
 
-@layer utilities {
+@media (prefers-reduced-motion: no-preference) {
   [data-reveal] {
     opacity: 0;
     transform: translateY(12px);

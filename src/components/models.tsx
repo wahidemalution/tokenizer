@@ -16,9 +16,9 @@ export const Models: FC = () => {
           <table class="w-full min-w-[540px] text-left text-sm">
             <thead>
               <tr class="border-b border-border bg-panel">
-                <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Model</th>
-                <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Provider</th>
-                <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Tier</th>
+                <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Model</th>
+                <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Provider</th>
+                <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Tier</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">

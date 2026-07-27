@@ -6,6 +6,7 @@ function initMobileNav() {
   const set = (open: boolean) => {
     menu.classList.toggle("hidden", !open);
     toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Tutup menu" : "Buka menu");
     toggle.innerHTML = open
       ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>'
       : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
@@ -37,10 +38,14 @@ function initCopy() {
 }
 
 function initScrollReveal() {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const els = document.querySelectorAll<HTMLElement>("[data-reveal]");
+  const revealAll = () => els.forEach((el) => el.classList.add("reveal-in"));
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    revealAll();
+    return;
+  }
   if (!("IntersectionObserver" in window)) {
-    els.forEach((el) => el.classList.add("reveal-in"));
+    revealAll();
     return;
   }
   const io = new IntersectionObserver(

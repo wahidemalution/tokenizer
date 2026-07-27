@@ -8,6 +8,7 @@
     "build:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --minify",
     "build:client": "bun build src/client/main.ts --outfile public/client.js --minify",
     "build": "bun run build:css && bun run build:client",
+    "prestart": "bun run build",
     "start": "bun src/index.tsx",
     "test": "bun test"
   },

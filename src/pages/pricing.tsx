@@ -51,12 +51,12 @@ export const PricingPage: FC = () => {
               <table class="w-full min-w-[640px] text-left text-sm">
                 <thead>
                   <tr class="border-b border-border bg-panel">
-                    <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Paket</th>
-                    <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Kuota</th>
-                    <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Harga</th>
-                    <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">per 1M token</th>
-                    <th class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Masa aktif</th>
-                    <th class="px-4 py-2.5" />
+                    <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Paket</th>
+                    <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Kuota</th>
+                    <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Harga</th>
+                    <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">per 1M token</th>
+                    <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Masa aktif</th>
+                    <th scope="col" class="px-4 py-2.5" />
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-border">

@@ -1,0 +1,23 @@
+{
+  "name": "tokenizer-landing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.tsx",
+    "build:css": "tailwindcss -i ./src/styles/app.css -o ./public/app.css --minify",
+    "build:client": "bun build src/client/main.ts --outfile public/client.js --minify",
+    "build": "bun run build:css && bun run build:client",
+    "start": "bun src/index.tsx",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.0.0",
+    "@types/bun": "latest",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.5.0"
+  }
+}

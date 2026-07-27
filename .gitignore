@@ -1,1 +1,9 @@
 .superpowers/
+node_modules/
+public/app.css
+public/client.js
+data/
+.env
+dist/
+*.log
+.DS_Store

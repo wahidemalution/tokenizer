@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 const MIGRATION = `
 CREATE TABLE IF NOT EXISTS orders (
@@ -42,9 +44,19 @@ export type { Database };
 
 let _db: Database | null = null;
 
+function ensureParentDir(path: string): void {
+  if (path === ":memory:") return;
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+  } catch {
+    // abaikan — mungkin sudah ada
+  }
+}
+
 export function getDb(): Database {
   if (_db) return _db;
   const path = Bun.env.BUN_DB_PATH || "data/orders.sqlite";
+  ensureParentDir(path);
   const db = openDb(path);
   migrate(db);
   _db = db;

@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
-import { openDb, migrate } from "./db";
+import { openDb, migrate, getDb, _resetDbForTests } from "./db";
+import { withEnv } from "./test-helpers";
 
 test("migrate creates orders table with expected columns", () => {
   const db = openDb(":memory:");
@@ -21,4 +22,14 @@ test("migrate is idempotent", () => {
   migrate(db);
   const count = db.query(`SELECT count(*) as n FROM orders`).get() as { n: number };
   expect(count.n).toBe(0);
+});
+
+test("getDb creates missing parent directories for custom BUN_DB_PATH", async () => {
+  const path = `/tmp/opencode/db-test-${crypto.randomUUID()}/nested/orders.sqlite`;
+  await withEnv({ BUN_DB_PATH: path }, () => {
+    const db = getDb();
+    const count = db.query(`SELECT count(*) as n FROM orders`).get() as { n: number };
+    expect(count.n).toBe(0);
+  });
+  _resetDbForTests(":memory:");
 });

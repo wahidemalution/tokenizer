@@ -3,6 +3,7 @@ import { serveStatic } from "hono/bun";
 import { renderToString } from "hono/jsx/dom/server";
 import { mkdirSync } from "node:fs";
 import { HomePage } from "./pages/home";
+import { PricingPage } from "./pages/pricing";
 
 // pastikan folder data ada untuk path sqlite default (bun:sqlite tidak membuat parent dirs)
 if (!Bun.env.BUN_DB_PATH || Bun.env.BUN_DB_PATH !== ":memory:") {
@@ -21,6 +22,11 @@ app.use("/client.js", serveStatic({ path: "./public/client.js" }));
 
 app.get("/", (c) => {
   const html = renderToString(<HomePage />);
+  return c.html(`<!doctype html>${html}`);
+});
+
+app.get("/pricing", (c) => {
+  const html = renderToString(<PricingPage />);
   return c.html(`<!doctype html>${html}`);
 });
 

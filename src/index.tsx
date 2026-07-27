@@ -6,11 +6,23 @@ import { HomePage } from "./pages/home";
 import { PricingPage } from "./pages/pricing";
 import { CheckoutPage } from "./pages/checkout";
 import type { CheckoutError } from "./pages/checkout";
+import { OrderSuccessPage } from "./pages/order-success";
 import { getPlan } from "./lib/plans";
 import { getDb } from "./lib/db";
-import { createOrder, setInvoice, findReusablePending } from "./lib/orders";
+import {
+  createOrder,
+  getOrderById,
+  getOrderByInvoice,
+  setInvoice,
+  expireIfDue,
+  markPaid,
+  setDiscordNotified,
+  isPaidAmountAcceptable,
+  findReusablePending,
+} from "./lib/orders";
 import { verifyTurnstile } from "./lib/turnstile";
-import { createPayment } from "./lib/bayar";
+import { createPayment, checkPayment } from "./lib/bayar";
+import { sendPaidNotification } from "./lib/discord";
 import { env, isCheckoutConfigured } from "./lib/env";
 import { isValidEmail, normalizeEmail, normalizePhone } from "./lib/validate";
 import { rateLimitOk } from "./lib/rate-limit";
@@ -136,6 +148,80 @@ app.post("/checkout", async (c) => {
     );
     return c.html(`<!doctype html>${html}`, 502);
   }
+});
+
+app.get("/order/success", (c) => {
+  const orderId = c.req.query("order") ?? "";
+  if (!orderId) return c.redirect("/");
+  const db = getDb();
+  let order = getOrderById(db, orderId);
+  if (!order) return c.redirect("/");
+  order = expireIfDue(db, order);
+  const html = renderToString(<OrderSuccessPage order={order} />);
+  return c.html(`<!doctype html>${html}`);
+});
+
+app.post("/api/webhooks/bayar", async (c) => {
+  let payload: any;
+  try {
+    payload = await c.req.json();
+  } catch {
+    return c.json({ success: true, message: "ignored" }, 200);
+  }
+  const invoiceId = payload?.invoice_id ? String(payload.invoice_id) : "";
+  if (!invoiceId) return c.json({ success: true, message: "ignored" }, 200);
+
+  const db = getDb();
+  let order = getOrderByInvoice(db, invoiceId);
+  if (!order) {
+    console.warn("webhook: invoice not found", invoiceId);
+    return c.json({ success: true, message: "ignored" }, 200);
+  }
+
+  order = expireIfDue(db, order);
+  if (order.status === "expired") {
+    console.warn("webhook: late payment for expired order", invoiceId);
+    return c.json({ success: true, message: "expired" }, 200);
+  }
+  if (order.status === "paid" && order.discordNotified) {
+    return c.json({ success: true, message: "already-paid" }, 200);
+  }
+
+  // Verifikasi ulang ke bayar.gg (body webhook tidak bertanda tangan).
+  let verified;
+  try {
+    verified = await checkPayment(invoiceId);
+  } catch (e) {
+    console.error("webhook: check-payment error", e);
+    return c.json({ success: true, message: "verify-failed" }, 200);
+  }
+  if (!verified || verified.status !== "paid") {
+    return c.json({ success: true, message: "not-paid" }, 202);
+  }
+
+  if (!isPaidAmountAcceptable(order.amountIdr, verified.finalAmount)) {
+    console.warn("webhook: amount mismatch", {
+      invoiceId,
+      expected: order.amountIdr,
+      finalAmount: verified.finalAmount,
+    });
+    return c.json({ success: true, message: "amount-mismatch" }, 200);
+  }
+
+  const { order: paidOrder, transitioned } = markPaid(
+    db,
+    order.id,
+    verified.paidAt ?? new Date().toISOString(),
+    verified.finalAmount ?? null
+  );
+
+  if (transitioned || !paidOrder.discordNotified) {
+    const discord = await sendPaidNotification(paidOrder);
+    if (discord.ok) setDiscordNotified(db, paidOrder.id);
+    else console.error("webhook: discord failed", discord.error);
+  }
+
+  return c.json({ success: true, message: "paid" }, 200);
 });
 
 app.notFound((c) =>

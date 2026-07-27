@@ -1,6 +1,12 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
+import { renderToString } from "hono/jsx/dom/server";
 import { mkdirSync } from "node:fs";
+import { Layout } from "./server";
+import { content } from "./content/home";
+import { Announcement } from "./components/announcement";
+import { Navbar } from "./components/navbar";
+import { Footer } from "./components/footer";
 
 // pastikan folder data ada untuk path sqlite default (bun:sqlite tidak membuat parent dirs)
 if (!Bun.env.BUN_DB_PATH || Bun.env.BUN_DB_PATH !== ":memory:") {
@@ -16,6 +22,22 @@ const app = new Hono();
 app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 app.use("/app.css", serveStatic({ path: "./public/app.css" }));
 app.use("/client.js", serveStatic({ path: "./public/client.js" }));
+
+app.get("/", (c) => {
+  const html = renderToString(
+    <Layout title={`${content.brand} — ${content.tagline}`} description={content.hero.sub}>
+      <Announcement />
+      <Navbar />
+      <main class="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+        <p class="font-mono text-sm text-faint">
+          <span class="text-brand">//</span> section menyusul
+        </p>
+      </main>
+      <Footer />
+    </Layout>
+  );
+  return c.html(`<!doctype html>${html}`);
+});
 
 app.notFound((c) =>
   c.html(

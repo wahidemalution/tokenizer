@@ -5,7 +5,7 @@ test("getPlan returns the 10m plan with correct amount", () => {
   const plan = getPlan("10m");
   expect(plan).not.toBeNull();
   expect(plan!.name).toBe("10M");
-  expect(plan!.amountIdr).toBe(40000);
+  expect(plan!.amountIdr).toBe(45000);
   expect(plan!.tokens).toBe("10M token");
   expect(plan!.duration).toBe("14 hari");
 });
@@ -44,7 +44,7 @@ test("planMillions parses numeric prefix of plan name", () => {
 
 test("pricePerMillion decreases on bigger plans", () => {
   expect(pricePerMillion(getPlan("1m")!)).toBe(3500);
-  expect(pricePerMillion(getPlan("10m")!)).toBe(4000);
+  expect(pricePerMillion(getPlan("10m")!)).toBe(4500);
   expect(pricePerMillion(getPlan("50m")!)).toBe(3200);
   expect(pricePerMillion(getPlan("100m")!)).toBe(3000);
 });

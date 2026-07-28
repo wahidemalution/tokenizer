@@ -6,8 +6,6 @@ import { Navbar } from "../components/navbar";
 import { Hero } from "../components/hero";
 import { LogoStrip } from "../components/logo-strip";
 import { Features } from "../components/features";
-import { Comparison } from "../components/comparison";
-import { Stats } from "../components/stats";
 import { Models } from "../components/models";
 import { PricingCards } from "../components/pricing-cards";
 import { Testimonials } from "../components/testimonials";
@@ -23,8 +21,6 @@ export const HomePage: FC = () => (
       <Hero />
       <LogoStrip />
       <Features />
-      <Comparison />
-      <Stats />
       <Models />
       <PricingCards />
       <Testimonials />

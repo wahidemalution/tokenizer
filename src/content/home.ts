@@ -57,37 +57,6 @@ export const content = {
     ],
   },
 
-  comparison: {
-    label: "sebelum / sesudah",
-    without: {
-      title: "Tanpa TOKENIZER",
-      points: [
-        "Harga list per-token yang mahal",
-        "Terkunci di satu ekosistem",
-        "Tagihan dan kuota tidak transparan",
-        "Invoice kejutan saat scale",
-      ],
-    },
-    with: {
-      title: "Dengan TOKENIZER",
-      points: [
-        "Model frontier dengan harga murah",
-        "Satu API, banyak provider",
-        "Dasbor pemakaian yang transparan",
-        "Kredit yang berlipat hingga 100×",
-      ],
-    },
-  },
-
-  stats: {
-    items: [
-      { value: "10×", label: "lebih murah", body: "Dibanding harga list big-lab." },
-      { value: "2×", label: "setup lebih cepat", body: "Satu base URL, ganti SDK dalam hitungan menit." },
-      { value: "5×", label: "lebih jauh per rupiah", body: "Promo kredit memperpanjang setiap sen." },
-      { value: "100%", label: "model full-weight", body: "Tidak pernah dikuantisasi diam-diam." },
-    ],
-  },
-
   models: {
     label: "model",
     title: "Satu API, 13+ model frontier",
@@ -165,16 +134,10 @@ export const content = {
   },
 
   footer: {
-    columns: [
-      {
-        title: "Produk",
-        links: [
-          { label: "Fitur", href: "/#fitur" },
-          { label: "Model", href: "/#model" },
-          { label: "Harga", href: "/pricing" },
-          { label: "FAQ", href: "/#faq" },
-        ],
-      },
+    legal: [
+      { label: "Ketentuan Layanan", href: "/terms" },
+      { label: "Kebijakan Privasi", href: "/privacy" },
+      { label: "Pengembalian Dana", href: "/refund" },
     ],
     socials: [
       { label: "X", icon: "x", href: "https://x.com/" },

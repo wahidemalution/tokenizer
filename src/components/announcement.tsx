@@ -4,6 +4,7 @@ import { IconArrowRight } from "./icons";
 
 export const Announcement: FC = () => {
   const a = content.announcement;
+  if (!a.enabled) return null;
   return (
     <div class="border-b border-border bg-panel/60">
       <div class="mx-auto flex max-w-6xl items-center justify-center px-4 py-2 sm:px-6">

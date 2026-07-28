@@ -13,6 +13,7 @@ export const content = {
   },
 
   announcement: {
+    enabled: false,
     text: "Deal model frontier — DeepSeek 4×, MiniMax 2.7×, MiMo hemat 99%",
     href: "/pricing",
   },
@@ -20,7 +21,7 @@ export const content = {
   hero: {
     label: "gateway token frontier",
     h1Line1: "Token AI frontier.",
-    h1Line2: "Satu API. Murah.",
+    h1Line2: "Murahnya TOP TIER.",
     sub: "Gateway drop-in yang kompatibel dengan OpenAI. DeepSeek, MiniMax, MiMo, dan lainnya — ship agen dan aplikasi tanpa membakar runway.",
     primaryCta: { label: "Dapatkan API key", href: "/pricing" },
     secondaryCta: { label: "Lihat model", href: "#model" },
@@ -29,7 +30,15 @@ export const content = {
 
   logoStrip: {
     label: "SATU API, 13+ MODEL FRONTIER",
-    wordmarks: ["OpenAI", "Anthropic", "DeepSeek", "Zhipu AI", "MiniMax", "Qwen", "Moonshot"],
+    providers: [
+      { slug: "openai", name: "OpenAI" },
+      { slug: "anthropic", name: "Anthropic" },
+      { slug: "deepseek", name: "DeepSeek" },
+      { slug: "zhipu", name: "Zhipu AI" },
+      { slug: "minimax", name: "MiniMax" },
+      { slug: "qwen", name: "Qwen" },
+      { slug: "kimi", name: "Moonshot" },
+    ],
   },
 
   features: {

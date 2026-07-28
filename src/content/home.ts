@@ -49,11 +49,11 @@ export const content = {
     items: [
       { n: "01", title: "Model frontier terkemuka", body: "GPT-5, Claude Opus, Gemini, dan model-model terbaik dunia — semuanya tersedia di platform ini." },
       { n: "02", title: "Pilih provider sesuka hati", body: "Anda bebas ganti provider kapan saja hanya dengan beberapa baris kode — fleksibilitas penuh untuk kebutuhan tim Anda." },
-      { n: "03", title: "Kredit yang awet", body: "Promo dan kredit gratis membuat setiap rupiah berlipat ganda." },
-      { n: "04", title: "Kompatibel dengan OpenAI", body: "Base URL drop-in. Arahkan SDK Anda ke api.tokenizer.com dan ship." },
-      { n: "05", title: "Latensi rendah", body: "Routing yang efisien menjaga first-token latency tetap rendah." },
-      { n: "06", title: "Kuota transparan", body: "Limit jelas dan tagihan transparan — tanpa invoice kejutan." },
-      { n: "07", title: "Dasbor & API key", body: "Key per proyek, grafik pemakaian, dan tim dalam satu konsol." },
+      { n: "03", title: "Kredit yang awet", body: "Manfaatkan promo dan kredit gratis untuk memperpanjang masa pakai token — tiap rupiah bekerja lebih keras." },
+      { n: "04", title: "Kompatibel dengan OpenAI", body: "Drop-in base URL yang kompatibel dengan SDK OpenAI. Arahkan ke api.tokenizer.com, lalu mulai ship aplikasi." },
+      { n: "05", title: "Latensi rendah", body: "Routing cerdas ke endpoint terdekat menjaga first-token latency tetap minimal." },
+      { n: "06", title: "Kuota transparan", body: "Limit penggunaan jelas, tagihan dapat diprediksi — tanpa invoice kejutan saat scale." },
+      { n: "07", title: "Dasbor & API key", body: "Kelola key per proyek, pantau grafik pemakaian, dan atur akses tim dalam satu konsol." },
     ],
   },
 

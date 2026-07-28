@@ -58,6 +58,26 @@
     content: "";
     display: none;
   }
+  /* Spotlight hijau brand mengikuti kursor — dipakai di sel grid fitur */
+  [data-spotlight] {
+    position: relative;
+  }
+  [data-spotlight]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      240px circle at var(--x, 50%) var(--y, 50%),
+      rgba(62, 207, 142, 0.08),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  [data-spotlight]:hover::after {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

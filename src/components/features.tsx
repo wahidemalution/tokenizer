@@ -18,7 +18,7 @@ export const Features: FC = () => {
           data-reveal
         >
           {f.items.map((item) => (
-            <div class="bg-background p-6">
+            <div class="bg-background p-6 transition-colors hover:bg-panel" data-spotlight>
               <p class="font-mono text-xs text-faint">{item.n}</p>
               <h3 class="mt-3 font-medium text-foreground">{item.title}</h3>
               <p class="mt-1.5 text-sm leading-relaxed text-muted">{item.body}</p>
@@ -27,6 +27,7 @@ export const Features: FC = () => {
           <a
             href={f.cta.href}
             class="group flex items-center justify-between gap-4 bg-panel p-6 transition-colors hover:bg-elevated"
+            data-spotlight
           >
             <span class="text-sm font-medium text-foreground">{f.cta.label}</span>
             <IconArrowRight size={16} class="text-brand transition-transform group-hover:translate-x-1" />

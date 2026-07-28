@@ -62,8 +62,19 @@ function initScrollReveal() {
   els.forEach((el) => io.observe(el));
 }
 
+function initSpotlight() {
+  document.querySelectorAll<HTMLElement>("[data-spotlight]").forEach((el) => {
+    el.addEventListener("mousemove", (e) => {
+      const rect = el.getBoundingClientRect();
+      el.style.setProperty("--x", `${e.clientX - rect.left}px`);
+      el.style.setProperty("--y", `${e.clientY - rect.top}px`);
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initMobileNav();
   initCopy();
   initScrollReveal();
+  initSpotlight();
 });

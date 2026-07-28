@@ -22,7 +22,7 @@ export const content = {
     label: "gateway token frontier",
     h1Line1: "Token AI frontier.",
     h1Line2: "Murahnya TOP TIER.",
-    sub: "Gateway drop-in yang kompatibel dengan OpenAI. DeepSeek, MiniMax, MiMo, dan lainnya — ship agen dan aplikasi tanpa membakar runway.",
+    sub: "Belasan model AI super power dalam satu API, siap pakai — kompatibel dengan OpenAI, aktif dalam hitungan menit, mulai dari Rp10.000.",
     primaryCta: { label: "Dapatkan API key", href: "/pricing" },
     secondaryCta: { label: "Lihat model", href: "#model" },
     codeFile: "ai-tokenizer.py",

@@ -15,12 +15,11 @@ test("features punya 7 item bernomor 01-07 dengan body", () => {
   });
 });
 
-test("models punya 13 item dengan tier valid", () => {
+test("models punya 13 item dengan provider valid", () => {
   expect(content.models.items).toHaveLength(13);
   for (const m of content.models.items) {
     expect(m.name.length).toBeGreaterThan(0);
     expect(m.provider.length).toBeGreaterThan(0);
-    expect(["Pro", "Free"]).toContain(m.tier);
   }
 });
 

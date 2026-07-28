@@ -39,7 +39,12 @@ export const PricingCards: FC = () => {
                   ) : null}
                 </div>
                 <p class="mt-0.5 text-sm text-muted">{plan.tokens}</p>
-                <p class="mt-4 text-2xl font-semibold tracking-tight text-foreground">{plan.priceLabel}</p>
+                <div class="mt-4 flex items-end gap-2">
+                  {plan.id === "1m" && plan.amountIdr !== 10000 ? (
+                    <span class="text-sm text-faint line-through">Rp10.000</span>
+                  ) : null}
+                  <p class="text-2xl font-semibold tracking-tight text-foreground">{plan.priceLabel}</p>
+                </div>
                 <ul class="mt-4 space-y-2 text-sm text-muted">
                   <li class="flex items-center gap-2">
                     <IconCheck size={14} class="text-brand" />

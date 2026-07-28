@@ -7,7 +7,7 @@ test("getPlan returns the 10m plan with correct amount", () => {
   expect(plan!.name).toBe("10M");
   expect(plan!.amountIdr).toBe(40000);
   expect(plan!.tokens).toBe("10M token");
-  expect(plan!.duration).toBe("7 hari");
+  expect(plan!.duration).toBe("14 hari");
 });
 
 test("getPlan returns null for unknown id", () => {
@@ -26,8 +26,8 @@ test("PLAN_IDS includes 1m and 100m", () => {
   expect(PLAN_IDS).toContain("100m");
 });
 
-test("1m plan amount is 10000 and 100m is 300000", () => {
-  expect(getPlan("1m")!.amountIdr).toBe(10000);
+test("1m plan amount is 4000 and 100m is 300000", () => {
+  expect(getPlan("1m")!.amountIdr).toBe(4000);
   expect(getPlan("100m")!.amountIdr).toBe(300000);
 });
 
@@ -43,7 +43,7 @@ test("planMillions parses numeric prefix of plan name", () => {
 });
 
 test("pricePerMillion decreases on bigger plans", () => {
-  expect(pricePerMillion(getPlan("1m")!)).toBe(10000);
+  expect(pricePerMillion(getPlan("1m")!)).toBe(4000);
   expect(pricePerMillion(getPlan("10m")!)).toBe(4000);
   expect(pricePerMillion(getPlan("50m")!)).toBe(3200);
   expect(pricePerMillion(getPlan("100m")!)).toBe(3000);

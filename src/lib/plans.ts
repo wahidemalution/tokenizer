@@ -7,10 +7,10 @@ export type Plan = {
   duration: string;
 };
 
-const DURATION = "7 hari";
+const DURATION = "14 hari";
 
 export const PLANS: Plan[] = [
-  { id: "1m", name: "1M", tokens: "1M token", amountIdr: 10000, priceLabel: "Rp10.000", duration: DURATION },
+  { id: "1m", name: "1M", tokens: "1M token", amountIdr: 4000, priceLabel: "Rp4.000", duration: DURATION },
   { id: "5m", name: "5M", tokens: "5M token", amountIdr: 25000, priceLabel: "Rp25.000", duration: DURATION },
   { id: "10m", name: "10M", tokens: "10M token", amountIdr: 40000, priceLabel: "Rp40.000", duration: DURATION },
   { id: "20m", name: "20M", tokens: "20M token", amountIdr: 70000, priceLabel: "Rp70.000", duration: DURATION },

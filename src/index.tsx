@@ -7,6 +7,9 @@ import { PricingPage } from "./pages/pricing";
 import { CheckoutPage } from "./pages/checkout";
 import type { CheckoutError } from "./pages/checkout";
 import { OrderSuccessPage } from "./pages/order-success";
+import { TermsPage } from "./pages/terms";
+import { PrivacyPage } from "./pages/privacy";
+import { RefundPage } from "./pages/refund";
 import { getPlan } from "./lib/plans";
 import { getDb } from "./lib/db";
 import {
@@ -158,6 +161,21 @@ app.get("/order/success", (c) => {
   if (!order) return c.redirect("/");
   order = expireIfDue(db, order);
   const html = renderToString(<OrderSuccessPage order={order} />);
+  return c.html(`<!doctype html>${html}`);
+});
+
+app.get("/terms", (c) => {
+  const html = renderToString(<TermsPage />);
+  return c.html(`<!doctype html>${html}`);
+});
+
+app.get("/privacy", (c) => {
+  const html = renderToString(<PrivacyPage />);
+  return c.html(`<!doctype html>${html}`);
+});
+
+app.get("/refund", (c) => {
+  const html = renderToString(<RefundPage />);
   return c.html(`<!doctype html>${html}`);
 });
 

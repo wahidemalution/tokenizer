@@ -60,7 +60,7 @@ export const PricingPage: FC = () => {
                   </tr>
                   {PLANS.some((p) => p.id === "1m" && p.amountIdr !== 10000) ? (
                     <tr class="bg-brand/5">
-                      <td colspan="6" class="px-4 py-2.5 text-xs font-semibold text-center text-brand">
+                      <td colSpan={6} class="px-4 py-2.5 text-xs font-semibold text-center text-brand">
                         Promo Diskon Terbatas: Paket 1M turun jadi Rp3.500 (diskon 65%)
                       </td>
                     </tr>

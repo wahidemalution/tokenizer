@@ -34,9 +34,14 @@ export const PricingCards: FC = () => {
                   </span>
                 ) : null}
                 {hasDiscount ? (
-                  <span class="absolute -top-2.5 left-4 rounded bg-brand px-2 py-0.5 text-xs font-medium text-black">
-                    Diskon {discountPercent}%
-                  </span>
+                  <div class="absolute -top-2.5 left-4 flex items-center gap-1.5">
+                    <span class="rounded bg-brand px-2 py-0.5 text-xs font-medium text-black">
+                      Diskon {discountPercent}%
+                    </span>
+                    <span class="rounded border border-brand/40 bg-background px-2 py-0.5 text-xs font-medium text-brand">
+                      Terbatas
+                    </span>
+                  </div>
                 ) : null}
                 <div class="flex items-center justify-between">
                   <h3 class="text-lg font-semibold text-foreground">{plan.name}</h3>

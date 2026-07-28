@@ -26,8 +26,8 @@ test("PLAN_IDS includes 1m and 100m", () => {
   expect(PLAN_IDS).toContain("100m");
 });
 
-test("1m plan amount is 4000 and 100m is 300000", () => {
-  expect(getPlan("1m")!.amountIdr).toBe(4000);
+test("1m plan amount is 3500 and 100m is 300000", () => {
+  expect(getPlan("1m")!.amountIdr).toBe(3500);
   expect(getPlan("100m")!.amountIdr).toBe(300000);
 });
 
@@ -43,7 +43,7 @@ test("planMillions parses numeric prefix of plan name", () => {
 });
 
 test("pricePerMillion decreases on bigger plans", () => {
-  expect(pricePerMillion(getPlan("1m")!)).toBe(4000);
+  expect(pricePerMillion(getPlan("1m")!)).toBe(3500);
   expect(pricePerMillion(getPlan("10m")!)).toBe(4000);
   expect(pricePerMillion(getPlan("50m")!)).toBe(3200);
   expect(pricePerMillion(getPlan("100m")!)).toBe(3000);

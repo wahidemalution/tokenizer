@@ -18,16 +18,24 @@ export const PricingCards: FC = () => {
           {PLANS.map((plan) => {
             const isPopular = plan.id === p.badges.popular.planId;
             const isBest = plan.id === p.badges.bestValue.planId;
+            const discountPercent = plan.id === "1m" && plan.amountIdr !== 10000 ? Math.round(((10000 - plan.amountIdr) / 10000) * 100) : null;
+            const hasDiscount = discountPercent !== null;
+            const highlight = isPopular || hasDiscount;
             return (
               <div
                 class={`relative rounded-lg border p-5 transition-colors ${
-                  isPopular ? "border-brand/50 bg-panel" : "border-border bg-panel hover:border-border-strong"
+                  highlight ? "border-brand/50 bg-panel" : "border-border bg-panel hover:border-border-strong"
                 }`}
                 data-reveal
               >
                 {isPopular ? (
                   <span class="absolute -top-2.5 left-4 rounded bg-brand px-2 py-0.5 text-xs font-medium text-black">
                     {p.badges.popular.label}
+                  </span>
+                ) : null}
+                {hasDiscount ? (
+                  <span class="absolute -top-2.5 left-4 rounded bg-brand px-2 py-0.5 text-xs font-medium text-black">
+                    Diskon {discountPercent}%
                   </span>
                 ) : null}
                 <div class="flex items-center justify-between">
@@ -58,7 +66,7 @@ export const PricingCards: FC = () => {
                 <a
                   href={`/checkout?plan=${plan.id}`}
                   class={`mt-5 inline-flex h-10 w-full items-center justify-center rounded-md text-sm font-medium transition-colors ${
-                    isPopular
+                    highlight
                       ? "bg-brand text-black hover:bg-brand-strong"
                       : "border border-border bg-background text-foreground hover:bg-elevated"
                   }`}

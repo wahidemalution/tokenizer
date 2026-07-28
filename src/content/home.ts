@@ -43,12 +43,12 @@ export const content = {
 
   features: {
     label: "kenapa tokenizer",
-    title: "Gateway token frontier",
-    subtitle: "Ship, stream, scale — tetap murah.",
+    title: "AI Gateway Tokenizer",
+    subtitle: "Model AI termutakhir dalam satu API — akses OpenAI, Anthropic, dan lainnya tanpa ribet.",
     cta: { label: "Lihat harga paket", href: "/pricing" },
     items: [
-      { n: "01", title: "Model frontier", body: "DeepSeek, MiniMax, MiMo, dan lainnya — full-weight, tidak pernah dikuantisasi diam-diam." },
-      { n: "02", title: "Multi-provider", body: "Satu API, banyak backend. Ganti model tanpa menulis ulang kode." },
+      { n: "01", title: "Model frontier terkemuka", body: "GPT-5, Claude Opus, Gemini, dan model-model terbaik dunia — semuanya tersedia di platform ini." },
+      { n: "02", title: "Pilih provider sesuka hati", body: "Anda bebas ganti provider kapan saja hanya dengan beberapa baris kode — fleksibilitas penuh untuk kebutuhan tim Anda." },
       { n: "03", title: "Kredit yang awet", body: "Promo dan kredit gratis membuat setiap rupiah berlipat ganda." },
       { n: "04", title: "Kompatibel dengan OpenAI", body: "Base URL drop-in. Arahkan SDK Anda ke api.tokenizer.com dan ship." },
       { n: "05", title: "Latensi rendah", body: "Routing yang efisien menjaga first-token latency tetap rendah." },

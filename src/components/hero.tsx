@@ -69,7 +69,7 @@ export const Hero: FC = () => {
             <h1 class="mt-4 text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl">
               {h.h1Line1}
               <br />
-              <span class="text-faint">{h.h1Line2}</span>
+              <span class="text-foreground">{h.h1Line2}</span>
             </h1>
             <p class="mt-5 max-w-md text-base leading-relaxed text-muted sm:text-lg">{h.sub}</p>
             <div class="mt-8 flex flex-col gap-3 sm:flex-row">

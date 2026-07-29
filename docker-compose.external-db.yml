@@ -1,0 +1,31 @@
+# App only — Postgres from external provider (Neon, Supabase, managed, etc.).
+#
+# Usage:
+#   # .env must set DATABASE_URL to the external connection string
+#   docker compose -f docker-compose.external-db.yml up -d --build
+#
+# Do not use this file together with the default compose db service
+# unless you intentionally point DATABASE_URL at that external host.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env for external Postgres}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      BAYAR_GG_API_KEY: ${BAYAR_GG_API_KEY:-}
+      BAYAR_GG_BASE_URL: ${BAYAR_GG_BASE_URL:-https://www.bayar.gg/api}
+      BAYAR_GG_PAYMENT_URL: ${BAYAR_GG_PAYMENT_URL:-https://www.bayar.gg/pay}
+      BAYAR_GG_PAYMENT_METHOD: ${BAYAR_GG_PAYMENT_METHOD:-qris}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      TURNSTILE_BYPASS: ${TURNSTILE_BYPASS:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-strong}

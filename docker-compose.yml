@@ -1,0 +1,62 @@
+# Default stack: app + Postgres (bundled).
+# External DB only: see docker-compose.external-db.yml
+#
+# Usage:
+#   cp .env.example .env   # isi secret, PUBLIC_BASE_URL, bayar, dll.
+#   docker compose up -d --build
+#
+# App: http://localhost:${APP_PORT:-3000}
+# Admin: http://localhost:${APP_PORT:-3000}/admin/login
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tokenizer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tokenizer}
+      POSTGRES_DB: ${POSTGRES_DB:-tokenizer}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Host access optional (psql / GUI). App uses internal network.
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-tokenizer} -d ${POSTGRES_DB:-tokenizer}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      PORT: "3000"
+      # Internal Docker DNS — overrides host .env DATABASE_URL so app always hits compose db
+      DATABASE_URL: postgres://${POSTGRES_USER:-tokenizer}:${POSTGRES_PASSWORD:-tokenizer}@db:5432/${POSTGRES_DB:-tokenizer}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      BAYAR_GG_API_KEY: ${BAYAR_GG_API_KEY:-}
+      BAYAR_GG_BASE_URL: ${BAYAR_GG_BASE_URL:-https://www.bayar.gg/api}
+      BAYAR_GG_PAYMENT_URL: ${BAYAR_GG_PAYMENT_URL:-https://www.bayar.gg/pay}
+      BAYAR_GG_PAYMENT_METHOD: ${BAYAR_GG_PAYMENT_METHOD:-qris}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      TURNSTILE_BYPASS: ${TURNSTILE_BYPASS:-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-strong}
+
+volumes:
+  pgdata:

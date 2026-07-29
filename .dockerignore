@@ -1,0 +1,15 @@
+node_modules
+.git
+.worktrees
+.superpowers
+data
+.env
+.env.*
+!.env.example
+dist
+*.log
+.DS_Store
+docs
+public/app.css
+public/client.js
+README.md

@@ -30,6 +30,18 @@ export const env = {
   get turnstileBypass() {
     return get("TURNSTILE_BYPASS") === "1";
   },
+  get databaseUrl() {
+    return get("DATABASE_URL");
+  },
+  get adminUsername() {
+    return get("ADMIN_USERNAME");
+  },
+  get adminPassword() {
+    return get("ADMIN_PASSWORD");
+  },
+  get isHttps() {
+    return this.baseUrl.startsWith("https://");
+  },
 };
 
 export function isCheckoutConfigured(): { ok: boolean; missing: string[] } {
@@ -39,5 +51,6 @@ export function isCheckoutConfigured(): { ok: boolean; missing: string[] } {
   if (!env.discordWebhookUrl) missing.push("DISCORD_WEBHOOK_URL");
   if (!env.turnstileSiteKey) missing.push("TURNSTILE_SITE_KEY");
   if (!env.turnstileSecretKey) missing.push("TURNSTILE_SECRET_KEY");
+  if (!env.databaseUrl) missing.push("DATABASE_URL");
   return { ok: missing.length === 0, missing };
 }

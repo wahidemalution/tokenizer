@@ -49,8 +49,11 @@ export function isCheckoutConfigured(): { ok: boolean; missing: string[] } {
   if (!env.baseUrl) missing.push("PUBLIC_BASE_URL");
   if (!env.bayarApiKey) missing.push("BAYAR_GG_API_KEY");
   if (!env.discordWebhookUrl) missing.push("DISCORD_WEBHOOK_URL");
-  if (!env.turnstileSiteKey) missing.push("TURNSTILE_SITE_KEY");
-  if (!env.turnstileSecretKey) missing.push("TURNSTILE_SECRET_KEY");
+  // TURNSTILE_BYPASS=1: skip captcha keys (dev only). Production must set both keys.
+  if (!env.turnstileBypass) {
+    if (!env.turnstileSiteKey) missing.push("TURNSTILE_SITE_KEY");
+    if (!env.turnstileSecretKey) missing.push("TURNSTILE_SECRET_KEY");
+  }
   if (!env.databaseUrl) missing.push("DATABASE_URL");
   return { ok: missing.length === 0, missing };
 }

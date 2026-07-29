@@ -48,7 +48,8 @@ export const CheckoutPage: FC<{
   values?: Partial<FormValues>;
   errors?: CheckoutError[];
   captchaSiteKey: string;
-}> = ({ plan, values = {}, errors = [], captchaSiteKey }) => {
+  captchaBypass?: boolean;
+}> = ({ plan, values = {}, errors = [], captchaSiteKey, captchaBypass = false }) => {
   const errFor = (field: string) => errors.find((e) => e.field === field)?.message;
   const general = errors.filter((e) => !e.field);
 
@@ -56,7 +57,11 @@ export const CheckoutPage: FC<{
     <Layout
       title={`Checkout ${plan.name} — ${content.brand}`}
       description={`Pembelian paket ${plan.name} token.`}
-      headExtra={<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+      headExtra={
+        captchaBypass || !captchaSiteKey ? null : (
+          <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        )
+      }
     >
       <Navbar />
       <main class="mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-20">
@@ -109,10 +114,14 @@ export const CheckoutPage: FC<{
                 error={errFor("telegram")}
               />
 
-              <div>
-                <div class="cf-turnstile" data-sitekey={captchaSiteKey} data-theme="dark"></div>
-                {errFor("captcha") ? <p class="mt-1 text-xs text-red-400">{errFor("captcha")}</p> : null}
-              </div>
+              {captchaBypass || !captchaSiteKey ? null : (
+                <div>
+                  <div class="cf-turnstile" data-sitekey={captchaSiteKey} data-theme="dark"></div>
+                  {errFor("captcha") ? (
+                    <p class="mt-1 text-xs text-red-400">{errFor("captcha")}</p>
+                  ) : null}
+                </div>
+              )}
 
               <button
                 type="submit"

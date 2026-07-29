@@ -59,7 +59,12 @@ app.get("/checkout", (c) => {
     ? []
     : [{ message: "Checkout sedang tidak tersedia. Coba lagi nanti." }];
   const html = renderToString(
-    <CheckoutPage plan={plan} errors={errors} captchaSiteKey={env.turnstileSiteKey} />
+    <CheckoutPage
+      plan={plan}
+      errors={errors}
+      captchaSiteKey={env.turnstileSiteKey}
+      captchaBypass={env.turnstileBypass}
+    />
   );
   return c.html(`<!doctype html>${html}`);
 });
@@ -102,7 +107,13 @@ app.post("/checkout", async (c) => {
 
   if (errors.length > 0) {
     const html = renderToString(
-      <CheckoutPage plan={plan} values={values} errors={errors} captchaSiteKey={env.turnstileSiteKey} />
+      <CheckoutPage
+        plan={plan}
+        values={values}
+        errors={errors}
+        captchaSiteKey={env.turnstileSiteKey}
+        captchaBypass={env.turnstileBypass}
+      />
     );
     return c.html(`<!doctype html>${html}`, 400);
   }
@@ -143,6 +154,7 @@ app.post("/checkout", async (c) => {
           values={values}
           errors={[{ message: "Gagal membuat invoice pembayaran. Silakan coba lagi." }]}
           captchaSiteKey={env.turnstileSiteKey}
+          captchaBypass={env.turnstileBypass}
         />
       );
       return c.html(`<!doctype html>${html}`, 502);

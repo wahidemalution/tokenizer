@@ -87,7 +87,7 @@ admin.post("/logout", requireAdmin, async (c) => {
 admin.get("/", requireAdmin, async (c) => {
   const stats = await getDashboardStats(getDb());
   const html = renderToString(
-    <AdminLayout title="Dashboard" user={c.get("adminUser")}>
+    <AdminLayout title="Dashboard" user={c.get("adminUser")} path="/admin">
       <DashboardPage stats={stats} />
     </AdminLayout>
   );
@@ -102,7 +102,7 @@ admin.get("/orders", requireAdmin, async (c) => {
   const perPage = 20;
   const { rows, total } = await listOrders(getDb(), { status, fulfilled, q, page, perPage });
   const html = renderToString(
-    <AdminLayout title="Orders" user={c.get("adminUser")}>
+    <AdminLayout title="Orders" user={c.get("adminUser")} path="/admin/orders">
       <OrdersPage
         rows={rows}
         total={total}
@@ -121,7 +121,7 @@ admin.get("/orders/:id", requireAdmin, async (c) => {
   if (!order) return c.notFound();
   const events = await listPaymentEventsForOrder(getDb(), id);
   const html = renderToString(
-    <AdminLayout title={`Order ${id.slice(0, 8)}`} user={c.get("adminUser")}>
+    <AdminLayout title={`Order ${id.slice(0, 8)}`} user={c.get("adminUser")} path="/admin/orders">
       <OrderDetailPage
         order={order}
         events={events}
@@ -164,7 +164,7 @@ admin.post("/orders/:id/recheck", requireAdmin, async (c) => {
 admin.get("/users", requireAdmin, async (c) => {
   const users = await listAdminUsers(getDb());
   const html = renderToString(
-    <AdminLayout title="Users" user={c.get("adminUser")}>
+    <AdminLayout title="Users" user={c.get("adminUser")} path="/admin/users">
       <UsersPage
         users={users}
         currentUserId={c.get("adminUser").id}

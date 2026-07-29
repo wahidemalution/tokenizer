@@ -78,6 +78,10 @@
   [data-spotlight]:hover::after {
     opacity: 1;
   }
+  /* Admin tables: softer horizontal rules */
+  .admin-table-row {
+    border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

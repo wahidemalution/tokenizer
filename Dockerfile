@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 WORKDIR /app
 
-COPY package.json bun.lock ./
+COPY package.json bun.lock tsconfig.json ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/public ./public
 COPY src ./src

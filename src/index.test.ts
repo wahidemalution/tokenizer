@@ -1,14 +1,34 @@
-import { test, expect, beforeEach, afterAll } from "bun:test";
+import { test, expect, beforeAll, beforeEach, afterAll } from "bun:test";
 import { app } from "./index";
-import { _resetDbForTests, getDb } from "./lib/db";
-import { createOrder, setInvoice, getOrderById } from "./lib/orders";
+import { _resetDbForTests, getDb, closeDb } from "./lib/db";
+import {
+  createOrder,
+  setInvoice,
+  getOrderById,
+  setExpiresAt,
+} from "./lib/orders";
+import { listPaymentEventsForOrder } from "./lib/payment-events";
 import { PLANS } from "./lib/plans";
 import { withEnv } from "./lib/test-helpers";
+import {
+  getTestDatabaseUrl,
+  migrateTestDb,
+  truncateAll,
+} from "./db/test-utils";
 
 const DISCORD_URL = "https://discord.test/hook";
 const plan = PLANS[2];
+const url = getTestDatabaseUrl();
 
 let discordCallCount = 0;
+
+function skip(): boolean {
+  if (!url) {
+    console.warn("SKIP index DB tests: no TEST_DATABASE_URL/DATABASE_URL");
+    return true;
+  }
+  return false;
+}
 
 function setupFetch(opts: {
   bayarStatus: string;
@@ -19,8 +39,8 @@ function setupFetch(opts: {
   discordCallCount = 0;
   const discordStatus = opts.discordStatus ?? 204;
   globalThis.fetch = (async (input: any, _init?: any) => {
-    const url = typeof input === "string" ? input : input?.url ?? "";
-    if (url.startsWith("https://www.bayar.gg/api/check-payment.php")) {
+    const u = typeof input === "string" ? input : input?.url ?? "";
+    if (u.startsWith("https://www.bayar.gg/api/check-payment.php")) {
       return new Response(
         JSON.stringify({
           success: true,
@@ -31,25 +51,25 @@ function setupFetch(opts: {
         { status: 200, headers: { "content-type": "application/json" } }
       );
     }
-    if (url === DISCORD_URL) {
+    if (u === DISCORD_URL) {
       discordCallCount++;
       return new Response("", { status: discordStatus });
     }
-    return new Response(JSON.stringify({ error: "no mock for " + url }), {
+    return new Response(JSON.stringify({ error: "no mock for " + u }), {
       status: 404,
       headers: { "content-type": "application/json" },
     });
   }) as typeof fetch;
 }
 
-function seedOrder(id: string, invoiceId: string, overrides?: { expiresAt?: string }) {
+async function seedOrder(id: string, invoiceId: string, overrides?: { expiresAt?: string }) {
   const db = getDb();
-  createOrder(db, { id, plan, email: "a@b.co" });
-  setInvoice(db, id, invoiceId, "https://pay.test/x");
+  await createOrder(db, { id, plan, email: "a@b.co" });
+  await setInvoice(db, id, invoiceId, "https://pay.test/x");
   if (overrides?.expiresAt) {
-    db.query(`UPDATE orders SET expires_at = ? WHERE id = ?`).run(overrides.expiresAt, id);
+    await setExpiresAt(db, id, overrides.expiresAt);
   }
-  return getOrderById(db, id)!;
+  return (await getOrderById(db, id))!;
 }
 
 async function postWebhook(invoiceId: string) {
@@ -65,17 +85,22 @@ async function postWebhook(invoiceId: string) {
 const envVars = {
   BAYAR_GG_API_KEY: "k",
   DISCORD_WEBHOOK_URL: DISCORD_URL,
-  BUN_DB_PATH: ":memory:",
+  DATABASE_URL: url ?? "",
 };
 
-beforeEach(() => {
-  _resetDbForTests(":memory:");
+beforeAll(async () => {
+  if (!url) return;
+  await migrateTestDb(url);
+  await _resetDbForTests(url);
 });
 
-// Bersihkan singleton db agar file test lain (mis. db.test.ts) tidak mewarisi
-// koneksi in-memory berisi order hasil seeding file ini.
-afterAll(() => {
-  _resetDbForTests(":memory:");
+beforeEach(async () => {
+  if (!url) return;
+  await truncateAll(getDb());
+});
+
+afterAll(async () => {
+  await closeDb();
 });
 
 test("smoke: GET / returns 200 with brand", async () => {
@@ -107,7 +132,8 @@ test("smoke: GET /checkout with valid plan renders form", async () => {
 });
 
 test("spoofed webhook (checkPayment says not-paid) -> 202 not-paid", async () => {
-  seedOrder("ord-spoof", "INV-SPOOF");
+  if (skip()) return;
+  await seedOrder("ord-spoof", "INV-SPOOF");
   setupFetch({ bayarStatus: "pending" });
   await withEnv(envVars, async () => {
     const res = await postWebhook("INV-SPOOF");
@@ -115,14 +141,15 @@ test("spoofed webhook (checkPayment says not-paid) -> 202 not-paid", async () =>
     const body = await res.json();
     expect(body.message).toBe("not-paid");
     expect(discordCallCount).toBe(0);
-    const order = getOrderById(getDb(), "ord-spoof");
+    const order = await getOrderById(getDb(), "ord-spoof");
     expect(order!.status).toBe("pending");
     expect(order!.discordNotified).toBe(false);
   });
 });
 
-test("verified paid webhook -> 200 paid, order paid + discordNotified", async () => {
-  seedOrder("ord-paid", "INV-PAID");
+test("verified paid webhook -> 200 paid, order paid + discordNotified + event", async () => {
+  if (skip()) return;
+  await seedOrder("ord-paid", "INV-PAID");
   setupFetch({
     bayarStatus: "paid",
     bayarFinalAmount: 45123,
@@ -135,15 +162,18 @@ test("verified paid webhook -> 200 paid, order paid + discordNotified", async ()
     const body = await res.json();
     expect(body.message).toBe("paid");
     expect(discordCallCount).toBe(1);
-    const order = getOrderById(getDb(), "ord-paid");
+    const order = await getOrderById(getDb(), "ord-paid");
     expect(order!.status).toBe("paid");
     expect(order!.finalAmountIdr).toBe(45123);
     expect(order!.discordNotified).toBe(true);
+    const events = await listPaymentEventsForOrder(getDb(), "ord-paid");
+    expect(events.some((e) => e.message === "paid")).toBe(true);
   });
 });
 
 test("paid with underpaid final_amount -> amount-mismatch, order stays pending", async () => {
-  seedOrder("ord-under", "INV-UNDER");
+  if (skip()) return;
+  await seedOrder("ord-under", "INV-UNDER");
   setupFetch({
     bayarStatus: "paid",
     bayarFinalAmount: 1000,
@@ -156,14 +186,15 @@ test("paid with underpaid final_amount -> amount-mismatch, order stays pending",
     const body = await res.json();
     expect(body.message).toBe("amount-mismatch");
     expect(discordCallCount).toBe(0);
-    const order = getOrderById(getDb(), "ord-under");
+    const order = await getOrderById(getDb(), "ord-under");
     expect(order!.status).toBe("pending");
     expect(order!.discordNotified).toBe(false);
   });
 });
 
 test("double webhook -> second returns 200 already-paid", async () => {
-  seedOrder("ord-double", "INV-DOUBLE");
+  if (skip()) return;
+  await seedOrder("ord-double", "INV-DOUBLE");
   setupFetch({
     bayarStatus: "paid",
     bayarFinalAmount: 45123,
@@ -181,14 +212,15 @@ test("double webhook -> second returns 200 already-paid", async () => {
     expect(body.message).toBe("already-paid");
     expect(discordCallCount).toBe(1);
 
-    const order = getOrderById(getDb(), "ord-double");
+    const order = await getOrderById(getDb(), "ord-double");
     expect(order!.status).toBe("paid");
     expect(order!.discordNotified).toBe(true);
   });
 });
 
 test("expired order webhook -> 200 expired, no discord fetch", async () => {
-  seedOrder("ord-expired", "INV-EXPIRED", {
+  if (skip()) return;
+  await seedOrder("ord-expired", "INV-EXPIRED", {
     expiresAt: new Date(Date.now() - 60_000).toISOString(),
   });
   setupFetch({
@@ -203,7 +235,7 @@ test("expired order webhook -> 200 expired, no discord fetch", async () => {
     const body = await res.json();
     expect(body.message).toBe("expired");
     expect(discordCallCount).toBe(0);
-    const order = getOrderById(getDb(), "ord-expired");
+    const order = await getOrderById(getDb(), "ord-expired");
     expect(order!.status).toBe("expired");
     expect(order!.discordNotified).toBe(false);
   });

@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { renderToString } from "hono/jsx/dom/server";
-import { mkdirSync } from "node:fs";
 import { HomePage } from "./pages/home";
 import { PricingPage } from "./pages/pricing";
 import { CheckoutPage } from "./pages/checkout";
@@ -23,21 +22,14 @@ import {
   isPaidAmountAcceptable,
   findReusablePending,
 } from "./lib/orders";
+import { insertPaymentEvent } from "./lib/payment-events";
 import { verifyTurnstile } from "./lib/turnstile";
 import { createPayment, checkPayment } from "./lib/bayar";
 import { sendPaidNotification } from "./lib/discord";
 import { env, isCheckoutConfigured } from "./lib/env";
 import { isValidEmail, normalizeEmail, normalizePhone } from "./lib/validate";
 import { rateLimitOk } from "./lib/rate-limit";
-
-// pastikan folder data ada untuk path sqlite default (bun:sqlite tidak membuat parent dirs)
-if (!Bun.env.BUN_DB_PATH || Bun.env.BUN_DB_PATH !== ":memory:") {
-  try {
-    mkdirSync("data", { recursive: true });
-  } catch {
-    // abaikan — mungkin sudah ada atau memakai path :memory:
-  }
-}
+import { seedAdminIfEmpty } from "./db/seed-admin";
 
 const app = new Hono();
 
@@ -112,56 +104,66 @@ app.post("/checkout", async (c) => {
     return c.html(`<!doctype html>${html}`, 400);
   }
 
-  const db = getDb();
-  const reusable = findReusablePending(db, email, plan.id);
-  if (reusable?.paymentUrl) {
-    return c.redirect(reusable.paymentUrl);
-  }
-
-  const id = crypto.randomUUID();
-  createOrder(db, {
-    id,
-    plan,
-    email,
-    discordId: discordId || null,
-    whatsapp: whatsapp || null,
-    telegram: telegram || null,
-  });
-
   try {
-    const result = await createPayment({
-      amount: plan.amountIdr,
-      description: `Tokenizer ${plan.name} — ${email}`,
-      customerEmail: email,
-      customerPhone: whatsapp || undefined,
-      callbackUrl: `${env.baseUrl}/api/webhooks/bayar`,
-      redirectUrl: `${env.baseUrl}/order/success?order=${id}`,
+    const db = getDb();
+    const reusable = await findReusablePending(db, email, plan.id);
+    if (reusable?.paymentUrl) {
+      return c.redirect(reusable.paymentUrl);
+    }
+
+    const id = crypto.randomUUID();
+    await createOrder(db, {
+      id,
+      plan,
+      email,
+      discordId: discordId || null,
+      whatsapp: whatsapp || null,
+      telegram: telegram || null,
     });
-    setInvoice(db, id, result.invoiceId, result.paymentUrl);
-    return c.redirect(result.paymentUrl);
+
+    try {
+      const result = await createPayment({
+        amount: plan.amountIdr,
+        description: `Tokenizer ${plan.name} — ${email}`,
+        customerEmail: email,
+        customerPhone: whatsapp || undefined,
+        callbackUrl: `${env.baseUrl}/api/webhooks/bayar`,
+        redirectUrl: `${env.baseUrl}/order/success?order=${id}`,
+      });
+      await setInvoice(db, id, result.invoiceId, result.paymentUrl);
+      return c.redirect(result.paymentUrl);
+    } catch (e) {
+      console.error("createPayment failed", e);
+      const html = renderToString(
+        <CheckoutPage
+          plan={plan}
+          values={values}
+          errors={[{ message: "Gagal membuat invoice pembayaran. Silakan coba lagi." }]}
+          captchaSiteKey={env.turnstileSiteKey}
+        />
+      );
+      return c.html(`<!doctype html>${html}`, 502);
+    }
   } catch (e) {
-    console.error("createPayment failed", e);
-    const html = renderToString(
-      <CheckoutPage
-        plan={plan}
-        values={values}
-        errors={[{ message: "Gagal membuat invoice pembayaran. Silakan coba lagi." }]}
-        captchaSiteKey={env.turnstileSiteKey}
-      />
-    );
-    return c.html(`<!doctype html>${html}`, 502);
+    console.error("checkout db error", e);
+    return c.text("Layanan sementara tidak tersedia.", 503);
   }
 });
 
-app.get("/order/success", (c) => {
+app.get("/order/success", async (c) => {
   const orderId = c.req.query("order") ?? "";
   if (!orderId) return c.redirect("/");
-  const db = getDb();
-  let order = getOrderById(db, orderId);
-  if (!order) return c.redirect("/");
-  order = expireIfDue(db, order);
-  const html = renderToString(<OrderSuccessPage order={order} />);
-  return c.html(`<!doctype html>${html}`);
+  try {
+    const db = getDb();
+    let order = await getOrderById(db, orderId);
+    if (!order) return c.redirect("/");
+    order = await expireIfDue(db, order);
+    const html = renderToString(<OrderSuccessPage order={order} />);
+    return c.html(`<!doctype html>${html}`);
+  } catch (e) {
+    console.error("order success db error", e);
+    return c.text("Layanan sementara tidak tersedia.", 503);
+  }
 });
 
 app.get("/terms", (c) => {
@@ -180,40 +182,100 @@ app.get("/refund", (c) => {
 });
 
 app.post("/api/webhooks/bayar", async (c) => {
-  let payload: any;
+  const db = getDb();
+  let raw: unknown = null;
+  let payload: any = null;
+
   try {
     payload = await c.req.json();
+    raw = payload;
   } catch {
+    raw = { parseError: true };
+    await insertPaymentEvent(db, {
+      source: "webhook",
+      rawBody: raw,
+      processedOk: false,
+      message: "ignored",
+    });
     return c.json({ success: true, message: "ignored" }, 200);
   }
-  const invoiceId = payload?.invoice_id ? String(payload.invoice_id) : "";
-  if (!invoiceId) return c.json({ success: true, message: "ignored" }, 200);
 
-  const db = getDb();
-  let order = getOrderByInvoice(db, invoiceId);
+  const invoiceId = payload?.invoice_id ? String(payload.invoice_id) : "";
+  if (!invoiceId) {
+    await insertPaymentEvent(db, {
+      source: "webhook",
+      rawBody: raw,
+      processedOk: false,
+      message: "ignored",
+    });
+    return c.json({ success: true, message: "ignored" }, 200);
+  }
+
+  let order = await getOrderByInvoice(db, invoiceId);
   if (!order) {
     console.warn("webhook: invoice not found", invoiceId);
+    await insertPaymentEvent(db, {
+      invoiceId,
+      source: "webhook",
+      rawBody: raw,
+      processedOk: false,
+      message: "order-not-found",
+    });
     return c.json({ success: true, message: "ignored" }, 200);
   }
 
-  order = expireIfDue(db, order);
+  order = await expireIfDue(db, order);
   if (order.status === "expired") {
     console.warn("webhook: late payment for expired order", invoiceId);
+    await insertPaymentEvent(db, {
+      orderId: order.id,
+      invoiceId,
+      source: "webhook",
+      rawBody: raw,
+      processedOk: false,
+      message: "expired",
+    });
     return c.json({ success: true, message: "expired" }, 200);
   }
   if (order.status === "paid" && order.discordNotified) {
+    await insertPaymentEvent(db, {
+      orderId: order.id,
+      invoiceId,
+      source: "webhook",
+      rawBody: raw,
+      processedOk: true,
+      message: "already-paid",
+    });
     return c.json({ success: true, message: "already-paid" }, 200);
   }
 
-  // Verifikasi ulang ke bayar.gg (body webhook tidak bertanda tangan).
   let verified;
   try {
     verified = await checkPayment(invoiceId);
   } catch (e) {
     console.error("webhook: check-payment error", e);
+    await insertPaymentEvent(db, {
+      orderId: order.id,
+      invoiceId,
+      source: "webhook",
+      rawBody: raw,
+      checkResult: null,
+      processedOk: false,
+      message: "verify-failed",
+    });
     return c.json({ success: true, message: "verify-failed" }, 200);
   }
+
   if (!verified || verified.status !== "paid") {
+    await insertPaymentEvent(db, {
+      orderId: order.id,
+      invoiceId,
+      source: "webhook",
+      rawBody: raw,
+      checkResult: verified,
+      processedOk: false,
+      message: "not-paid",
+    });
     return c.json({ success: true, message: "not-paid" }, 202);
   }
 
@@ -223,19 +285,38 @@ app.post("/api/webhooks/bayar", async (c) => {
       expected: order.amountIdr,
       finalAmount: verified.finalAmount,
     });
+    await insertPaymentEvent(db, {
+      orderId: order.id,
+      invoiceId,
+      source: "webhook",
+      rawBody: raw,
+      checkResult: verified,
+      processedOk: false,
+      message: "amount-mismatch",
+    });
     return c.json({ success: true, message: "amount-mismatch" }, 200);
   }
 
-  const { order: paidOrder, transitioned } = markPaid(
+  const { order: paidOrder, transitioned } = await markPaid(
     db,
     order.id,
     verified.paidAt ?? new Date().toISOString(),
     verified.finalAmount ?? null
   );
 
+  await insertPaymentEvent(db, {
+    orderId: paidOrder.id,
+    invoiceId,
+    source: "webhook",
+    rawBody: raw,
+    checkResult: verified,
+    processedOk: true,
+    message: "paid",
+  });
+
   if (transitioned || !paidOrder.discordNotified) {
     const discord = await sendPaidNotification(paidOrder);
-    if (discord.ok) setDiscordNotified(db, paidOrder.id);
+    if (discord.ok) await setDiscordNotified(db, paidOrder.id);
     else console.error("webhook: discord failed", discord.error);
   }
 
@@ -250,6 +331,12 @@ app.notFound((c) =>
 );
 
 export { app };
+
+if (Bun.env.BUN_TEST !== "1") {
+  seedAdminIfEmpty(getDb()).then((result) => {
+    if (result === "seeded") console.log("Admin user seeded from env");
+  }).catch((e) => console.error("Admin seed failed", e));
+}
 
 export default {
   port: Number(Bun.env.PORT ?? 3000),

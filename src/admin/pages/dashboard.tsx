@@ -9,35 +9,30 @@ export const DashboardPage: FC<{ stats: DashboardStats }> = ({ stats }) => {
       label: "Pending",
       value: String(stats.pending),
       hint: "Menunggu pembayaran",
-      accent: "border-l-amber-500/70",
       href: "/admin/orders?status=pending",
     },
     {
       label: "Paid hari ini",
       value: String(stats.paidToday),
       hint: "Zona Asia/Jakarta",
-      accent: "border-l-brand",
       href: "/admin/orders?status=paid",
     },
     {
       label: "Revenue hari ini",
       value: formatIdr(stats.revenueTodayIdr),
       hint: "Total final amount",
-      accent: "border-l-brand",
       href: "/admin/orders?status=paid",
     },
     {
       label: "Expired",
       value: String(stats.expired),
       hint: "Invoice kadaluarsa",
-      accent: "border-l-border-strong",
       href: "/admin/orders?status=expired",
     },
     {
       label: "Perlu fulfillment",
       value: String(stats.unfulfilledPaid),
       hint: "Paid, belum dikirim key",
-      accent: "border-l-amber-400/80",
       href: "/admin/orders?status=paid&fulfilled=no",
     },
   ];
@@ -63,7 +58,7 @@ export const DashboardPage: FC<{ stats: DashboardStats }> = ({ stats }) => {
         {cards.map((c) => (
           <a
             href={c.href}
-            class={`group block rounded-xl border border-border border-l-4 ${c.accent} bg-panel p-5 shadow-sm shadow-black/20 transition-colors hover:border-border-strong hover:bg-elevated/40`}
+            class="group block rounded-xl border border-border bg-panel p-5 transition-colors hover:border-border-strong hover:bg-elevated/40"
           >
             <div class="flex items-start justify-between gap-2">
               <span class="text-xs font-medium uppercase tracking-wide text-muted">{c.label}</span>

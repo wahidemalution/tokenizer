@@ -50,7 +50,11 @@ export async function createPayment(input: CreatePaymentInput): Promise<CreatePa
   });
   const data: any = await res.json().catch(() => ({}));
   if (!res.ok || data?.success !== true) {
-    throw new Error(`bayar.gg create-payment failed: ${data?.message ?? res.status}`);
+    const detail =
+      (typeof data?.error === "string" && data.error) ||
+      (typeof data?.message === "string" && data.message) ||
+      res.status;
+    throw new Error(`bayar.gg create-payment failed: ${detail}`);
   }
   const d = data.data ?? data;
   return {

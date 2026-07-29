@@ -37,7 +37,7 @@ Isi minimal:
 | Variabel | Wajib | Keterangan |
 |---|---|---|
 | `DATABASE_URL` | ya | Connection string Postgres |
-| `PUBLIC_BASE_URL` | ya (checkout) | URL publik tanpa trailing slash, mis. `http://localhost:3000` |
+| `PUBLIC_BASE_URL` | ya (checkout) | URL **HTTPS** publik tanpa trailing slash (bayar.gg menolak callback `http://`) |
 | `BAYAR_GG_API_KEY` | ya (checkout) | API key bayar.gg |
 | `DISCORD_WEBHOOK_URL` | ya (checkout) | Webhook notifikasi paid |
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | ya (checkout) | Cloudflare Turnstile |
@@ -79,6 +79,24 @@ Buka:
 
 - Landing: `http://localhost:3000`
 - Admin: `http://localhost:3000/admin/login`
+
+### Checkout lokal + bayar.gg (HTTPS wajib)
+
+bayar.gg menolak `callback_url` non-HTTPS. `PUBLIC_BASE_URL=http://localhost:3000` **tidak** bisa create invoice.
+
+Opsi dev:
+
+```bash
+# Terminal 1: app (compose atau bun)
+docker compose up -d
+
+# Terminal 2: tunnel ke port 3000 (contoh cloudflared)
+cloudflared tunnel --url http://localhost:3000
+# salin URL https://….trycloudflare.com ke PUBLIC_BASE_URL di .env
+# lalu: docker compose up -d   # recreate app agar env ter-load
+```
+
+Pastikan tunnel mengarah ke app, dan webhook path `/api/webhooks/bayar` reachable dari internet.
 
 Saat boot, jika `admin_users` kosong dan `ADMIN_USERNAME` + `ADMIN_PASSWORD` terisi, user admin pertama di-seed otomatis.
 

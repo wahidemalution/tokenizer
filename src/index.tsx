@@ -148,11 +148,17 @@ app.post("/checkout", async (c) => {
       return c.redirect(result.paymentUrl);
     } catch (e) {
       console.error("createPayment failed", e);
+      const raw = e instanceof Error ? e.message : String(e);
+      const needsHttps =
+        /callback_url.*HTTPS|harus menggunakan HTTPS|callback.*https/i.test(raw);
+      const message = needsHttps
+        ? "bayar.gg mewajibkan PUBLIC_BASE_URL ber-HTTPS untuk callback. Pakai domain HTTPS atau tunnel (cloudflared/ngrok), bukan http://localhost."
+        : "Gagal membuat invoice pembayaran. Silakan coba lagi.";
       const html = renderToString(
         <CheckoutPage
           plan={plan}
           values={values}
-          errors={[{ message: "Gagal membuat invoice pembayaran. Silakan coba lagi." }]}
+          errors={[{ message }]}
           captchaSiteKey={env.turnstileSiteKey}
           captchaBypass={env.turnstileBypass}
         />

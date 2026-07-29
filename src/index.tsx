@@ -30,8 +30,11 @@ import { env, isCheckoutConfigured } from "./lib/env";
 import { isValidEmail, normalizeEmail, normalizePhone } from "./lib/validate";
 import { rateLimitOk } from "./lib/rate-limit";
 import { seedAdminIfEmpty } from "./db/seed-admin";
+import { adminRoutes } from "./admin/routes";
 
 const app = new Hono();
+
+app.route("/admin", adminRoutes);
 
 app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 app.use("/app.css", serveStatic({ path: "./public/app.css" }));

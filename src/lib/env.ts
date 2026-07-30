@@ -39,6 +39,9 @@ export const env = {
   get adminPassword() {
     return get("ADMIN_PASSWORD");
   },
+  get orderViewSecret() {
+    return get("ORDER_VIEW_SECRET");
+  },
   get isHttps() {
     return this.baseUrl.startsWith("https://");
   },

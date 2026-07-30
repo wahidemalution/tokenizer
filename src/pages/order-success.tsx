@@ -6,10 +6,12 @@ import { Footer } from "../components/footer";
 import { IconCheck, IconX } from "../components/icons";
 import { formatIdr } from "../lib/plans";
 import type { Order } from "../lib/orders";
+import { maskEmail } from "../lib/order-view-token";
 
 export const OrderSuccessPage: FC<{ order: Order }> = ({ order }) => {
   const paid = order.status === "paid";
   const expired = order.status === "expired";
+  const emailDisplay = maskEmail(order.email);
   return (
     <Layout title={`Pesanan ${order.planName} — ${content.brand}`} description="Status pesanan token Anda.">
       <Navbar />
@@ -22,7 +24,7 @@ export const OrderSuccessPage: FC<{ order: Order }> = ({ order }) => {
             <h1 class="mt-6 text-3xl font-semibold tracking-tight text-foreground">Pembayaran diterima</h1>
             <p class="mt-3 text-muted">
               Terima kasih! Pesanan <strong class="text-foreground">{order.planName}</strong> ({order.tokens}) sedang
-              diproses. API key akan dikirim ke <strong class="text-foreground">{order.email}</strong>.
+              diproses. API key akan dikirim ke <strong class="text-foreground">{emailDisplay}</strong>.
             </p>
           </div>
         ) : expired ? (

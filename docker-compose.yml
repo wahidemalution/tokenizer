@@ -19,8 +19,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      # Host access optional (psql / GUI). App uses internal network.
-      - "${POSTGRES_PORT:-5432}:5432"
+      # Loopback only — never publish Postgres on 0.0.0.0 (production hardening).
+      # App talks to db over the internal Compose network; host tools use 127.0.0.1.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test:
         [
@@ -55,8 +56,10 @@ services:
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       TURNSTILE_BYPASS: ${TURNSTILE_BYPASS:-}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-strong}
+      ORDER_VIEW_SECRET: ${ORDER_VIEW_SECRET:-}
+      # No weak defaults — set strong ADMIN_PASSWORD (min 12 chars) or seed is refused
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
 
 volumes:
   pgdata:

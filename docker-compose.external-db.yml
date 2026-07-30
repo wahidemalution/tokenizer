@@ -1,11 +1,17 @@
-# App only — Postgres from external provider (Neon, Supabase, managed, etc.).
+# App only — Postgres from external provider (Neon, Supabase, Railway, managed, etc.).
 #
 # Usage:
-#   # .env must set DATABASE_URL to the external connection string
+#   cp .env.example .env
+#   # Set DATABASE_URL to external Postgres (prefer ?sslmode=require)
+#   # Set PUBLIC_BASE_URL to HTTPS public origin
+#   # Set ORDER_VIEW_SECRET, BAYAR_*, DISCORD_*, TURNSTILE_*, ADMIN_*
+#   # Do NOT set TURNSTILE_BYPASS in production
 #   docker compose -f docker-compose.external-db.yml up -d --build
 #
-# Do not use this file together with the default compose db service
-# unless you intentionally point DATABASE_URL at that external host.
+# Notes:
+#   - No bundled db service; nothing listens on host :5432 from this file.
+#   - Entrypoint runs migrations then starts the app.
+#   - Do not use together with docker-compose.yml (two apps / two configs).
 
 services:
   app:
@@ -14,11 +20,15 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
+      # Prefer reverse proxy in production; bind loopback if only local access needed:
+      # - "127.0.0.1:${APP_PORT:-3000}:3000"
       - "${APP_PORT:-3000}:3000"
     environment:
       PORT: "3000"
+      NODE_ENV: production
+      # Required — fail fast if missing from .env / shell
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env for external Postgres}
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:3000}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL (HTTPS in production)}
       BAYAR_GG_API_KEY: ${BAYAR_GG_API_KEY:-}
       BAYAR_GG_BASE_URL: ${BAYAR_GG_BASE_URL:-https://www.bayar.gg/api}
       BAYAR_GG_PAYMENT_URL: ${BAYAR_GG_PAYMENT_URL:-https://www.bayar.gg/pay}
@@ -26,6 +36,10 @@ services:
       DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      # Empty in production. "1" only for local dev.
       TURNSTILE_BYPASS: ${TURNSTILE_BYPASS:-}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me-strong}
+      # HMAC for /order/success?order=&t= — set a long random value in production
+      ORDER_VIEW_SECRET: ${ORDER_VIEW_SECRET:-}
+      # No weak defaults — empty means seed is skipped / refused (same as main compose)
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}

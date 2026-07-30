@@ -6,8 +6,8 @@ test("brand dan tagline terisi", () => {
   expect(content.tagline.length).toBeGreaterThan(0);
 });
 
-test("features punya 7 item bernomor 01-07 dengan body", () => {
-  expect(content.features.items).toHaveLength(7);
+test("features punya 5 item bernomor 01-05 dengan body", () => {
+  expect(content.features.items).toHaveLength(5);
   content.features.items.forEach((f, i) => {
     expect(String(i + 1).padStart(2, "0")).toBe(f.n);
     expect(f.title.length).toBeGreaterThan(0);

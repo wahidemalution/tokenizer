@@ -26,11 +26,11 @@ export const Features: FC = () => {
           ))}
           <a
             href={f.cta.href}
-            class="group flex items-center justify-between gap-4 bg-panel p-6 transition-colors hover:bg-elevated"
+            class="group flex min-h-full flex-col justify-between gap-6 bg-panel p-6 transition-colors hover:bg-elevated"
             data-spotlight
           >
             <span class="text-sm font-medium text-foreground">{f.cta.label}</span>
-            <IconArrowRight size={16} class="text-brand transition-transform group-hover:translate-x-1" />
+            <IconArrowRight size={16} class="self-end text-brand transition-transform group-hover:translate-x-1" />
           </a>
         </div>
       </div>

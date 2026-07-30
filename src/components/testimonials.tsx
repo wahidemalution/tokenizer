@@ -11,26 +11,10 @@ export const Testimonials: FC = () => {
           <SectionLabel>{t.label}</SectionLabel>
           <h2 class="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{t.title}</h2>
         </div>
-        <div class="mt-10 grid gap-4 md:grid-cols-2">
-          {t.items.map((it) => (
-            <figure class="flex flex-col justify-between rounded-lg border border-border bg-panel p-6" data-reveal>
-              <blockquote class="text-[15px] leading-relaxed text-foreground">"{it.quote}"</blockquote>
-              <figcaption class="mt-6 flex items-center gap-3">
-                <img
-                  src={it.avatar}
-                  alt={it.name}
-                  width={36}
-                  height={36}
-                  class="h-9 w-9 rounded-full border border-border"
-                  loading="lazy"
-                />
-                <div>
-                  <p class="text-sm font-medium text-foreground">{it.name}</p>
-                  <p class="text-xs text-faint">{it.role}</p>
-                </div>
-              </figcaption>
-            </figure>
-          ))}
+        <div class="mt-10 flex min-h-[12rem] items-center justify-center" data-reveal>
+          <p class="cursor-default text-center text-lg font-medium text-faint transition-all duration-300 hover:scale-105 hover:text-brand sm:text-xl">
+            Menunggu Review Kamu.
+          </p>
         </div>
       </div>
     </section>

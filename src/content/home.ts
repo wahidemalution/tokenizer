@@ -19,10 +19,10 @@ export const content = {
   },
 
   hero: {
-    label: "gateway token frontier",
+    label: "AI Gateway Frontier",
     h1Line1: "Token AI frontier.",
     h1Line2: "Murahnya TOP TIER.",
-    sub: "Belasan model AI super power dalam satu API, siap pakai — kompatibel dengan OpenAI, aktif dalam hitungan menit, mulai dari Rp10.000.",
+    sub: "Belasan model AI super power dalam satu API, siap pakai. Kompatibel dengan OpenAI, aktif dalam hitungan menit, mulai dari Rp10.000.",
     primaryCta: { label: "Dapatkan API key", href: "/pricing" },
     secondaryCta: { label: "Lihat model", href: "#model" },
     codeFile: "ai-tokenizer.py",
@@ -44,23 +44,21 @@ export const content = {
   features: {
     label: "kenapa tokenizer",
     title: "AI Gateway Tokenizer",
-    subtitle: "Model AI termutakhir dalam satu API — akses OpenAI, Anthropic, dan lainnya tanpa ribet.",
+    subtitle: "Satu API untuk model frontier terbaik. Lebih murah, setup cepat, tanpa ganti SDK.",
     cta: { label: "Lihat harga paket", href: "/pricing" },
     items: [
-      { n: "01", title: "Model frontier terkemuka", body: "GPT-5, Claude Opus, Gemini, dan model-model terbaik dunia — semuanya tersedia di platform ini." },
-      { n: "02", title: "Pilih provider sesuka hati", body: "Anda bebas ganti provider kapan saja hanya dengan beberapa baris kode — fleksibilitas penuh untuk kebutuhan tim Anda." },
-      { n: "03", title: "Kredit yang awet", body: "Manfaatkan promo dan kredit gratis untuk memperpanjang masa pakai token — tiap rupiah bekerja lebih keras." },
-      { n: "04", title: "Kompatibel dengan OpenAI", body: "Drop-in base URL yang kompatibel dengan SDK OpenAI. Arahkan ke api.tokenizer.com, lalu mulai ship aplikasi." },
-      { n: "05", title: "Latensi rendah", body: "Routing cerdas ke endpoint terdekat menjaga first-token latency tetap minimal." },
-      { n: "06", title: "Kuota transparan", body: "Limit penggunaan jelas, tagihan dapat diprediksi — tanpa invoice kejutan saat scale." },
-      { n: "07", title: "Dasbor & API key", body: "Kelola key per proyek, pantau grafik pemakaian, dan atur akses tim dalam satu konsol." },
+      { n: "01", title: "Model frontier terkemuka", body: "GPT-5, Claude Opus, Gemini, dan model terbaik dunia. Semuanya tersedia dalam 1 platform." },
+      { n: "02", title: "Pilih provider sesuka hati", body: "Pakai model dari provider mana pun yang tersedia. Cukup beberapa langkah, tanpa migrasi berat." },
+      { n: "03", title: "Promo menarik", body: "Tersedia banyak promo dan event menarik yang membuat token Anda lebih awet dan hemat." },
+      { n: "04", title: "Kompatibel dengan OpenAI", body: "Cukup ganti base URL ke api.tokenizer.com. SDK OpenAI yang sudah Anda pakai tetap jalan." },
+      { n: "05", title: "Dashboard Usage", body: "Pantau penggunaan token per API key secara real-time di satu dashboard." },
     ],
   },
 
   models: {
     label: "model",
     title: "Satu API, 14+ model frontier",
-    subtitle: "OpenAI GPT 5.X, Claude Opus 5, dan model-model top China — dalam satu API.",
+    subtitle: "OpenAI GPT 5.X, Claude Opus 5, dan model-model top China. Semua dalam satu API.",
     note: "Daftar model dapat berubah mengikuti ketersediaan dari provider.",
     items: [
       { name: "GPT 5.5", provider: "OpenAI" },
@@ -82,7 +80,7 @@ export const content = {
   pricing: {
     label: "harga",
     title: "Pilih paket yang cocok",
-    subtitle: "Bayar sesuai kuota dan masa aktif token. Top-up kapan saja.",
+    subtitle: "Bayar sesuai kuota dan masa aktif token.",
     note: "Harga token dapat berubah sewaktu-waktu mengikuti harga dari provider.",
     perMillion: "per 1M token",
     durationLabel: "Masa aktif",
@@ -95,16 +93,16 @@ export const content = {
 
   testimonials: {
     label: "komunitas",
-    title: "Disukai developer. Founder juga.",
+    title: "Disukai pada developer, dan kamu selanjutnya.",
     items: [
       {
-        quote: "TOKENIZER memangkas tagihan token kami 80%. Kualitas frontier yang sama, dengan biaya yang jauh lebih kecil. Kami berhenti membandingkan provider.",
+        quote: "menunggu review kamu",
         name: "Zeno Rocha",
         role: "Founder · Resend",
         avatar: "https://github.com/zenorocha.png?s=160",
       },
       {
-        quote: "Provider pertama yang membuat saya percaya open model di production. Harness-nya sangat solid, sampai saya harus memastikan ulang bahwa saya masih memakai DeepSeek Flash.",
+        quote: "menunggu review kamu",
         name: "David Thyresson",
         role: "GP · PWV",
         avatar: "https://github.com/dthyresson.png?s=160",
@@ -114,20 +112,20 @@ export const content = {
 
   faq: {
     label: "faq",
-    title: "Pertanyaan, terjawab.",
+    title: "Pertanyaanmu, ini jawabannya.",
     items: [
-      { q: "Apa bedanya TOKENIZER dengan OpenAI atau Anthropic langsung?", a: "TOKENIZER adalah gateway terpadu ke model frontier — open maupun closed — dengan tarif yang jauh lebih murah. Satu API, banyak provider, tagihan transparan." },
-      { q: "Model apa saja yang tersedia?", a: "DeepSeek, MiniMax, MiMo, Kimi, GLM, dan lainnya. Vendor baru ditambahkan secara berkala — lihat daftar lengkap di bagian Model." },
+      { q: "Apa bedanya TOKENIZER dengan OpenAI atau Anthropic langsung?", a: "TOKENIZER adalah gateway terpadu ke model frontier, open maupun closed, dengan tarif yang jauh lebih murah. Satu API, banyak provider, tagihan transparan." },
+      { q: "Model apa saja yang tersedia?", a: "ChatGPT, Claude, DeepSeek, MiniMax, MiMo, Kimi, GLM, dan lainnya. Vendor baru ditambahkan secara berkala. Lihat daftar lengkap di bagian Model." },
       { q: "Apakah API-nya kompatibel dengan OpenAI?", a: "Ya. Arahkan SDK OpenAI apa pun ke https://api.tokenizer.com/v1 dan langsung berfungsi tanpa mengubah kode." },
-      { q: "Apakah data saya dipakai untuk training?", a: "Tidak, tidak pernah. Prompt dan completion Anda tidak digunakan untuk training sama sekali." },
-      { q: "Bagaimana sistem kuota dan pembayarannya?", a: "Beli paket kuota sesuai kebutuhan, bayar via QRIS atau e-wallet, dan top-up kapan saja. Kuota makin awet dipakai di model yang lebih murah." },
+      { q: "Bagaimana sistem kuota dan pembayarannya?", a: "Intinya beli token sesuai paket yang tersedia, bayar via qris atau transfer. Langsung gunakan." },
       { q: "Berapa biaya untuk mulai?", a: "Mulai dari Rp4.000 untuk 1M token dengan masa aktif 14 hari. Tanpa kartu kredit, tanpa langganan." },
+      { q: "Apakah saya bisa custom topup token?", a: "Bisa. Silahkan hubungi admin, dan berikan informasi jumlah token yang ingin ditambahkan. Proses cepat, dan instant." },
     ],
   },
 
   finalCta: {
-    title: "Siap ship dengan token yang lebih murah?",
-    sub: "Mulai dari Rp10.000 — tanpa kartu kredit, tanpa langganan.",
+    title: "Siap menggunakan model frontier dengan harga yang lebih murah?",
+    sub: "Mulai dari Rp10.000. Tanpa kartu kredit, tanpa langganan.",
     codeChip: "curl https://api.tokenizer.com/v1/models",
     primaryCta: { label: "Dapatkan API key", href: "/pricing" },
     secondaryCta: { label: "Jelajahi model", href: "#model" },

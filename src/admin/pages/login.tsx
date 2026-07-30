@@ -1,13 +1,17 @@
 import type { FC } from "hono/jsx";
 import { AdminLayout } from "../layout";
-import { Alert, Btn, Field, inputClass } from "../ui";
+import { Alert, Btn, CsrfField, Field, inputClass } from "../ui";
 
 const ERROR_MSG: Record<string, string> = {
   auth: "Username atau password salah.",
   rate: "Terlalu banyak percobaan. Coba lagi nanti.",
 };
 
-export const LoginPage: FC<{ error?: string | null; next?: string }> = ({ error, next }) => {
+export const LoginPage: FC<{ error?: string | null; next?: string; csrfToken: string }> = ({
+  error,
+  next,
+  csrfToken,
+}) => {
   const errText = error ? (ERROR_MSG[error] ?? "Login gagal.") : null;
   return (
     <AdminLayout title="Login">
@@ -28,6 +32,7 @@ export const LoginPage: FC<{ error?: string | null; next?: string }> = ({ error,
             {errText ? <Alert tone="error">{errText}</Alert> : null}
 
             <form method="post" action="/admin/login" class="space-y-4">
+              <CsrfField token={csrfToken} />
               {next ? <input type="hidden" name="next" value={next} /> : null}
               <Field label="Username" name="username">
                 <input

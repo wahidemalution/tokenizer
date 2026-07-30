@@ -1,7 +1,7 @@
 import type { FC, Child } from "hono/jsx";
 import type { AdminUserPublic } from "../lib/admin-users";
 import { Layout } from "../server";
-import { Alert } from "./ui";
+import { Alert, CsrfField } from "./ui";
 
 const NAV = [
   {
@@ -78,7 +78,8 @@ export const AdminLayout: FC<{
   flash?: string | null;
   error?: string | null;
   path?: string;
-}> = ({ title, user, children, flash, error, path = "/admin" }) => {
+  csrfToken?: string;
+}> = ({ title, user, children, flash, error, path = "/admin", csrfToken }) => {
   return (
     <Layout title={`${title} · Admin TOKENIZER`}>
       <div class="min-h-screen bg-background text-foreground">
@@ -110,6 +111,7 @@ export const AdminLayout: FC<{
                   </div>
                 </div>
                 <form method="post" action="/admin/logout">
+                  {csrfToken ? <CsrfField token={csrfToken} /> : null}
                   <button
                     type="submit"
                     class="w-full rounded-lg border border-border bg-background px-3 py-2 text-left text-xs text-muted transition-colors hover:border-border-strong hover:text-foreground"
@@ -145,6 +147,7 @@ export const AdminLayout: FC<{
                       Lihat situs ↗
                     </a>
                     <form method="post" action="/admin/logout" class="lg:hidden">
+                      {csrfToken ? <CsrfField token={csrfToken} /> : null}
                       <button
                         type="submit"
                         class="rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted"

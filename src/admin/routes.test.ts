@@ -9,6 +9,7 @@ import {
 } from "../db/test-utils";
 import { createOrder, markPaid } from "../lib/orders";
 import type { Plan } from "../lib/plans";
+import { CSRF_COOKIE, CSRF_FIELD } from "../lib/auth/csrf";
 
 const url = getTestDatabaseUrl();
 const plan: Plan = {
@@ -19,6 +20,8 @@ const plan: Plan = {
   priceLabel: "Rp40.000",
   duration: "7 hari",
 };
+
+const PASS = "correct-horse-battery";
 
 function skip(): boolean {
   if (!url) {
@@ -43,18 +46,50 @@ afterAll(async () => {
   await closeDb();
 });
 
-async function loginCookie(username: string, password: string): Promise<string> {
+function parseCookies(setCookie: string | null): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!setCookie) return out;
+  // fetch may join multiple Set-Cookie; split carefully
+  for (const part of setCookie.split(/,(?=\s*[^;]+=)/)) {
+    const m = part.trim().match(/^([^=]+)=([^;]*)/);
+    if (m) out[m[1]] = m[2];
+  }
+  return out;
+}
+
+async function loginSession(username: string, password: string): Promise<string> {
+  const loginPage = await app.fetch(new Request("http://x/admin/login"));
+  const cookies = parseCookies(loginPage.headers.get("set-cookie"));
+  const csrf = cookies[CSRF_COOKIE];
+  expect(csrf).toBeTruthy();
+
   const res = await app.fetch(
     new Request("http://x/admin/login", {
       method: "POST",
-      body: new URLSearchParams({ username, password }),
-      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        username,
+        password,
+        [CSRF_FIELD]: csrf!,
+      }),
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        cookie: `${CSRF_COOKIE}=${csrf}`,
+      },
       redirect: "manual",
     })
   );
   const setCookie = res.headers.get("set-cookie") || "";
-  const m = setCookie.match(/admin_session=([^;]+)/);
-  return m ? `admin_session=${m[1]}` : "";
+  const all = parseCookies(setCookie);
+  // merge with previous csrf if not rotated in same header parse
+  const session = all.admin_session || setCookie.match(/admin_session=([^;]+)/)?.[1];
+  const newCsrf = all[CSRF_COOKIE] || csrf;
+  expect(session).toBeTruthy();
+  return `admin_session=${session}; ${CSRF_COOKIE}=${newCsrf}`;
+}
+
+function csrfFromCookieHeader(cookie: string): string {
+  const m = cookie.match(new RegExp(`${CSRF_COOKIE}=([^;]+)`));
+  return m?.[1] ?? "";
 }
 
 test("GET /admin redirects to login", async () => {
@@ -66,12 +101,22 @@ test("GET /admin redirects to login", async () => {
 
 test("login success sets cookie", async () => {
   if (skip()) return;
-  await createAdminUser(getDb(), { username: "admin", password: "correct-horse" });
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const loginPage = await app.fetch(new Request("http://x/admin/login"));
+  const cookies = parseCookies(loginPage.headers.get("set-cookie"));
+  const csrf = cookies[CSRF_COOKIE];
   const res = await app.fetch(
     new Request("http://x/admin/login", {
       method: "POST",
-      body: new URLSearchParams({ username: "admin", password: "correct-horse" }),
-      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        username: "admin",
+        password: PASS,
+        [CSRF_FIELD]: csrf!,
+      }),
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        cookie: `${CSRF_COOKIE}=${csrf}`,
+      },
       redirect: "manual",
     })
   );
@@ -79,23 +124,39 @@ test("login success sets cookie", async () => {
   expect(res.headers.get("set-cookie") || "").toContain("admin_session=");
 });
 
+test("login without CSRF fails", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const res = await app.fetch(
+    new Request("http://x/admin/login", {
+      method: "POST",
+      body: new URLSearchParams({ username: "admin", password: PASS }),
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      redirect: "manual",
+    })
+  );
+  expect(res.status).toBe(302);
+  expect(res.headers.get("location") || "").toContain("error=auth");
+  expect(res.headers.get("set-cookie") || "").not.toContain("admin_session=");
+});
+
 test("dashboard with session returns 200", async () => {
   if (skip()) return;
-  await createAdminUser(getDb(), { username: "admin", password: "correct-horse" });
-  const cookie = await loginCookie("admin", "correct-horse");
-  const res = await app.fetch(
-    new Request("http://x/admin", { headers: { cookie } })
-  );
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const cookie = await loginSession("admin", PASS);
+  const res = await app.fetch(new Request("http://x/admin", { headers: { cookie } }));
   expect(res.status).toBe(200);
   const html = await res.text();
   expect(html).toContain("Pending");
+  expect(res.headers.get("x-frame-options")).toBe("DENY");
+  expect(res.headers.get("content-security-policy") || "").toContain("frame-ancestors 'none'");
 });
 
 test("orders list shows seeded order email", async () => {
   if (skip()) return;
-  await createAdminUser(getDb(), { username: "admin", password: "correct-horse" });
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
   await createOrder(getDb(), { id: "ord-list", plan, email: "buyer@x.co" });
-  const cookie = await loginCookie("admin", "correct-horse");
+  const cookie = await loginSession("admin", PASS);
   const res = await app.fetch(
     new Request("http://x/admin/orders", { headers: { cookie } })
   );
@@ -105,12 +166,14 @@ test("orders list shows seeded order email", async () => {
 
 test("self-deactivate forbidden", async () => {
   if (skip()) return;
-  const u = await createAdminUser(getDb(), { username: "admin", password: "correct-horse" });
-  const cookie = await loginCookie("admin", "correct-horse");
+  const u = await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const cookie = await loginSession("admin", PASS);
+  const csrf = csrfFromCookieHeader(cookie);
   const res = await app.fetch(
     new Request(`http://x/admin/users/${u.id}/deactivate`, {
       method: "POST",
-      headers: { cookie },
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ [CSRF_FIELD]: csrf }),
       redirect: "manual",
     })
   );
@@ -118,17 +181,35 @@ test("self-deactivate forbidden", async () => {
   expect(res.headers.get("location") || "").toContain("cannot-self-deactivate");
 });
 
+test("POST without CSRF is rejected", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  await createOrder(getDb(), { id: "ord-csrf", plan, email: "a@b.co" });
+  await markPaid(getDb(), "ord-csrf", new Date().toISOString(), 40000);
+  const cookie = await loginSession("admin", PASS);
+  const res = await app.fetch(
+    new Request("http://x/admin/orders/ord-csrf/fulfill", {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ note: "sent" }),
+      redirect: "manual",
+    })
+  );
+  expect(res.status).toBe(403);
+});
+
 test("fulfill paid order via POST", async () => {
   if (skip()) return;
-  const u = await createAdminUser(getDb(), { username: "admin", password: "correct-horse" });
+  const u = await createAdminUser(getDb(), { username: "admin", password: PASS });
   await createOrder(getDb(), { id: "ord-ff", plan, email: "a@b.co" });
   await markPaid(getDb(), "ord-ff", new Date().toISOString(), 40000);
-  const cookie = await loginCookie("admin", "correct-horse");
+  const cookie = await loginSession("admin", PASS);
+  const csrf = csrfFromCookieHeader(cookie);
   const res = await app.fetch(
     new Request("http://x/admin/orders/ord-ff/fulfill", {
       method: "POST",
       headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ note: "sent" }),
+      body: new URLSearchParams({ note: "sent", [CSRF_FIELD]: csrf }),
       redirect: "manual",
     })
   );

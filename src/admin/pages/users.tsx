@@ -5,6 +5,7 @@ import {
   Btn,
   Card,
   CardHeader,
+  CsrfField,
   EmptyState,
   Field,
   PageHeader,
@@ -18,10 +19,13 @@ export const UsersPage: FC<{
   currentUserId: string;
   error?: string | null;
   ok?: string | null;
-}> = ({ users, currentUserId, error, ok }) => {
+  csrfToken: string;
+}> = ({ users, currentUserId, error, ok, csrfToken }) => {
   const errMap: Record<string, string> = {
     "cannot-self-deactivate": "Tidak bisa menonaktifkan akun sendiri.",
-    "password-short": "Password minimal 8 karakter.",
+    "last-admin": "Tidak bisa menonaktifkan admin aktif terakhir.",
+    "password-short": "Password minimal 12 karakter.",
+    "password-weak": "Password terlalu lemah atau sama dengan default yang dilarang.",
     "username-empty": "Username wajib diisi.",
     create: "Gagal membuat user (mungkin username sudah dipakai).",
   };
@@ -96,12 +100,14 @@ export const UsersPage: FC<{
                             {u.id !== currentUserId ? (
                               u.isActive ? (
                                 <form method="post" action={`/admin/users/${u.id}/deactivate`}>
+                                  <CsrfField token={csrfToken} />
                                   <Btn type="submit" variant="ghost" size="sm">
                                     Nonaktifkan
                                   </Btn>
                                 </form>
                               ) : (
                                 <form method="post" action={`/admin/users/${u.id}/activate`}>
+                                  <CsrfField token={csrfToken} />
                                   <Btn type="submit" variant="secondary" size="sm">
                                     Aktifkan
                                   </Btn>
@@ -113,11 +119,12 @@ export const UsersPage: FC<{
                               action={`/admin/users/${u.id}/password`}
                               class="flex max-w-[14rem] gap-1.5"
                             >
+                              <CsrfField token={csrfToken} />
                               <input
                                 type="password"
                                 name="password"
                                 placeholder="Password baru"
-                                minlength={8}
+                                minlength={12}
                                 required
                                 class={`${inputClass} py-1.5 text-xs`}
                               />
@@ -140,9 +147,10 @@ export const UsersPage: FC<{
           <Card>
             <CardHeader
               title="Tambah operator"
-              description="Password minimal 8 karakter. Discord ID opsional (untuk OAuth nanti)."
+              description="Password minimal 12 karakter, bukan default lemah. Discord ID opsional."
             />
             <form method="post" action="/admin/users" class="space-y-4">
+              <CsrfField token={csrfToken} />
               <Field label="Username" name="username">
                 <input
                   id="username"
@@ -159,9 +167,9 @@ export const UsersPage: FC<{
                   name="password"
                   type="password"
                   required
-                  minlength={8}
+                  minlength={12}
                   class={inputClass}
-                  placeholder="Min. 8 karakter"
+                  placeholder="Min. 12 karakter"
                   autocomplete="new-password"
                 />
               </Field>

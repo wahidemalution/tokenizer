@@ -7,6 +7,7 @@ import {
   Btn,
   Card,
   CardHeader,
+  CsrfField,
   EmptyState,
   Field,
   PageHeader,
@@ -30,7 +31,8 @@ export const OrderDetailPage: FC<{
   events: PaymentEvent[];
   ok?: string | null;
   error?: string | null;
-}> = ({ order, events, ok, error }) => {
+  csrfToken: string;
+}> = ({ order, events, ok, error, csrfToken }) => {
   const flash =
     ok === "fulfilled"
       ? "Order ditandai fulfilled."
@@ -62,6 +64,7 @@ export const OrderDetailPage: FC<{
           <>
             {order.invoiceId ? (
               <form method="post" action={`/admin/orders/${order.id}/recheck`}>
+                <CsrfField token={csrfToken} />
                 <Btn type="submit" variant="secondary" size="sm">
                   Re-check bayar.gg
                 </Btn>
@@ -188,6 +191,7 @@ export const OrderDetailPage: FC<{
               </p>
             ) : !order.fulfilledAt ? (
               <form method="post" action={`/admin/orders/${order.id}/fulfill`} class="space-y-4">
+                <CsrfField token={csrfToken} />
                 <Field label="Catatan internal" name="note" hint="Opsional — mis. channel pengiriman key">
                   <textarea
                     id="note"
@@ -214,6 +218,7 @@ export const OrderDetailPage: FC<{
                   ) : null}
                 </div>
                 <form method="post" action={`/admin/orders/${order.id}/unfulfill`}>
+                  <CsrfField token={csrfToken} />
                   <Btn type="submit" variant="danger" size="sm" class="w-full">
                     Batalkan fulfillment
                   </Btn>

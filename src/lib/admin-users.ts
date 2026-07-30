@@ -2,6 +2,7 @@ import { count, eq } from "drizzle-orm";
 import type { AppDb } from "../db/client";
 import { adminUsers } from "../db/schema";
 import { hashPassword } from "./auth/password";
+import { validateAdminPassword } from "./auth/password-policy";
 
 export type AdminUserPublic = {
   id: string;
@@ -29,6 +30,10 @@ export async function createAdminUser(
   db: AppDb,
   input: { username: string; password: string; discordId?: string | null }
 ): Promise<AdminUserPublic> {
+  const policy = validateAdminPassword(input.password, input.username);
+  if (!policy.ok) {
+    throw new Error(`password-policy:${policy.reason}`);
+  }
   const now = new Date();
   const id = crypto.randomUUID();
   const passwordHash = await hashPassword(input.password);
@@ -80,6 +85,11 @@ export async function setAdminActive(db: AppDb, id: string, isActive: boolean): 
 }
 
 export async function setAdminPassword(db: AppDb, id: string, password: string): Promise<void> {
+  const existing = await getAdminById(db, id);
+  const policy = validateAdminPassword(password, existing?.username);
+  if (!policy.ok) {
+    throw new Error(`password-policy:${policy.reason}`);
+  }
   const passwordHash = await hashPassword(password);
   await db
     .update(adminUsers)
@@ -90,4 +100,23 @@ export async function setAdminPassword(db: AppDb, id: string, password: string):
 export async function countAdminUsers(db: AppDb): Promise<number> {
   const [row] = await db.select({ n: count() }).from(adminUsers);
   return Number(row?.n ?? 0);
+}
+
+export async function countActiveAdminUsers(db: AppDb): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(adminUsers)
+    .where(eq(adminUsers.isActive, true));
+  return Number(row?.n ?? 0);
+}
+
+/** True if deactivating this user would leave zero active admins. */
+export async function wouldDeactivateLastActiveAdmin(
+  db: AppDb,
+  userId: string
+): Promise<boolean> {
+  const target = await getAdminById(db, userId);
+  if (!target || !target.isActive) return false;
+  const active = await countActiveAdminUsers(db);
+  return active <= 1;
 }

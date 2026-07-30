@@ -1,5 +1,10 @@
 import type { Child, FC } from "hono/jsx";
 import type { OrderStatus } from "../lib/orders";
+import { CSRF_FIELD } from "../lib/auth/csrf";
+
+export const CsrfField: FC<{ token: string }> = ({ token }) => (
+  <input type="hidden" name={CSRF_FIELD} value={token} />
+);
 
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";

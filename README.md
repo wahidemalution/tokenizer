@@ -274,9 +274,12 @@ docker/entrypoint.sh
 
 ## Keamanan (ringkas)
 
-- Password admin: Argon2id (`Bun.password`)
-- Session: cookie `admin_session` HttpOnly, SameSite=Lax, Secure di HTTPS
-- Login rate limit per IP
+- Password admin: Argon2id (`Bun.password`), min 12 karakter, default lemah ditolak
+- Session: cookie `admin_session` HttpOnly, SameSite=Strict, Path=/admin, Secure di HTTPS
+- CSRF double-submit (`admin_csrf` + field `_csrf`) pada semua POST admin + login
+- Login rate limit per IP; mutasi admin juga di-rate-limit
+- Security headers (CSP admin, X-Frame-Options DENY, nosniff, HSTS di HTTPS)
+- Seed admin menolak password default (`change-me-strong`, dll.)
 - Webhook: re-verify ke bayar.gg + toleransi kode unik amount (+0…999 IDR)
 
 ## Lisensi

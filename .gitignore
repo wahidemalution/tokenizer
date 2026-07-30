@@ -1,9 +1,11 @@
 .superpowers/
 .worktrees/
+.omop/
 node_modules/
 public/app.css
 public/client.js
 data/
+output/
 .env
 dist/
 *.log

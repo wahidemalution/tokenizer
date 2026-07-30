@@ -6,6 +6,7 @@ import {
   setInvoice,
   getOrderById,
   setExpiresAt,
+  markPaid,
 } from "./lib/orders";
 import { listPaymentEventsForOrder } from "./lib/payment-events";
 import { PLANS } from "./lib/plans";
@@ -15,6 +16,7 @@ import {
   migrateTestDb,
   truncateAll,
 } from "./db/test-utils";
+import { createOrderViewToken } from "./lib/order-view-token";
 
 const DISCORD_URL = "https://discord.test/hook";
 const plan = PLANS[2];
@@ -239,4 +241,53 @@ test("expired order webhook -> 200 expired, no discord fetch", async () => {
     expect(order!.status).toBe("expired");
     expect(order!.discordNotified).toBe(false);
   });
+});
+
+test("order success without view token redirects home", async () => {
+  if (skip()) return;
+  await seedOrder("ord-view", "INV-VIEW");
+  await withEnv({ ...envVars, ORDER_VIEW_SECRET: "unit-view-secret" }, async () => {
+    const res = await app.fetch(
+      new Request("https://x.test/order/success?order=ord-view")
+    );
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/");
+  });
+});
+
+test("order success with valid view token shows masked email", async () => {
+  if (skip()) return;
+  await seedOrder("ord-view-ok", "INV-VIEW-OK");
+  await markPaid(getDb(), "ord-view-ok", new Date().toISOString(), 45123);
+  await withEnv({ ...envVars, ORDER_VIEW_SECRET: "unit-view-secret" }, async () => {
+    const t = createOrderViewToken("ord-view-ok");
+    const res = await app.fetch(
+      new Request(`https://x.test/order/success?order=ord-view-ok&t=${t}`)
+    );
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("Pembayaran diterima");
+    expect(html).toContain("a***@b.co");
+    expect(html).not.toContain(">a@b.co<");
+  });
+});
+
+test("security headers present on home", async () => {
+  const res = await app.fetch(new Request("https://x.test/"));
+  expect(res.headers.get("X-Frame-Options")).toBe("DENY");
+  expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+});
+
+test("webhook rejects oversized content-length", async () => {
+  const res = await app.fetch(
+    new Request("https://x.test/api/webhooks/bayar", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "content-length": String(200_000),
+      },
+      body: "{}",
+    })
+  );
+  expect(res.status).toBe(413);
 });

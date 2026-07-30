@@ -18,7 +18,7 @@ test("verifyTurnstile fails when CF says failure", async () => {
   globalThis.fetch = mockFetch({
     [GOOD]: { body: { success: false, "error-codes": ["bad"] } },
   }) as any;
-  await withEnv({ TURNSTILE_SECRET_KEY: "s" }, async () => {
+  await withEnv({ TURNSTILE_SECRET_KEY: "s", TURNSTILE_BYPASS: undefined }, async () => {
     const r = await verifyTurnstile("tok");
     expect(r.success).toBe(false);
   });

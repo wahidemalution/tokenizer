@@ -31,9 +31,29 @@ import { isValidEmail, normalizeEmail, normalizePhone } from "./lib/validate";
 import { rateLimitOk } from "./lib/rate-limit";
 import { seedAdminIfEmpty } from "./db/seed-admin";
 import { adminRoutes } from "./admin/routes";
+import { securityHeaders } from "./lib/security-headers";
+import { clientIp } from "./lib/client-ip";
+import {
+  createOrderViewToken,
+  verifyOrderViewToken,
+} from "./lib/order-view-token";
+
+const WEBHOOK_MAX_BYTES = 64 * 1024;
+const WEBHOOK_STORE_MAX_CHARS = 4_096;
+
+function truncateWebhookRaw(value: unknown): unknown {
+  try {
+    const s = JSON.stringify(value);
+    if (s.length <= WEBHOOK_STORE_MAX_CHARS) return value;
+    return { truncated: true, preview: s.slice(0, WEBHOOK_STORE_MAX_CHARS) };
+  } catch {
+    return { truncated: true, preview: "[unserializable]" };
+  }
+}
 
 const app = new Hono();
 
+app.use("*", securityHeaders);
 app.route("/admin", adminRoutes);
 
 app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
@@ -70,10 +90,7 @@ app.get("/checkout", (c) => {
 });
 
 app.post("/checkout", async (c) => {
-  const ip =
-    c.req.header("CF-Connecting-IP") ||
-    c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() ||
-    "";
+  const ip = clientIp(c);
   if (!rateLimitOk(ip)) {
     return c.text("Terlalu banyak permintaan. Coba lagi sebentar.", 429);
   }
@@ -142,7 +159,7 @@ app.post("/checkout", async (c) => {
         customerEmail: email,
         customerPhone: whatsapp || undefined,
         callbackUrl: `${env.baseUrl}/api/webhooks/bayar`,
-        redirectUrl: `${env.baseUrl}/order/success?order=${id}`,
+        redirectUrl: `${env.baseUrl}/order/success?order=${id}&t=${createOrderViewToken(id)}`,
       });
       await setInvoice(db, id, result.invoiceId, result.paymentUrl);
       return c.redirect(result.paymentUrl);
@@ -173,7 +190,10 @@ app.post("/checkout", async (c) => {
 
 app.get("/order/success", async (c) => {
   const orderId = c.req.query("order") ?? "";
-  if (!orderId) return c.redirect("/");
+  const viewToken = c.req.query("t") ?? "";
+  if (!orderId || !verifyOrderViewToken(orderId, viewToken)) {
+    return c.redirect("/");
+  }
   try {
     const db = getDb();
     let order = await getOrderById(db, orderId);
@@ -203,13 +223,27 @@ app.get("/refund", (c) => {
 });
 
 app.post("/api/webhooks/bayar", async (c) => {
+  const ip = clientIp(c);
+  if (!rateLimitOk(ip, { windowMs: 60_000, max: 60, bucket: "webhook-bayar" })) {
+    return c.json({ success: false, message: "rate-limited" }, 429);
+  }
+
+  const contentLength = Number(c.req.header("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > WEBHOOK_MAX_BYTES) {
+    return c.json({ success: false, message: "payload-too-large" }, 413);
+  }
+
   const db = getDb();
   let raw: unknown = null;
-  let payload: any = null;
+  let payload: Record<string, unknown> | null = null;
 
   try {
-    payload = await c.req.json();
-    raw = payload;
+    const text = await c.req.text();
+    if (text.length > WEBHOOK_MAX_BYTES) {
+      return c.json({ success: false, message: "payload-too-large" }, 413);
+    }
+    payload = JSON.parse(text) as Record<string, unknown>;
+    raw = truncateWebhookRaw(payload);
   } catch {
     raw = { parseError: true };
     await insertPaymentEvent(db, {
@@ -353,10 +387,20 @@ app.notFound((c) =>
 
 export { app };
 
-if (Bun.env.BUN_TEST !== "1") {
-  seedAdminIfEmpty(getDb()).then((result) => {
-    if (result === "seeded") console.log("Admin user seeded from env");
-  }).catch((e) => console.error("Admin seed failed", e));
+const isTestRuntime =
+  Bun.env.BUN_TEST === "1" ||
+  Bun.env.NODE_ENV === "test" ||
+  typeof (globalThis as { bunTest?: unknown }).bunTest !== "undefined";
+
+if (!isTestRuntime && import.meta.main) {
+  seedAdminIfEmpty(getDb())
+    .then((result) => {
+      if (result === "seeded") console.log("Admin user seeded from env");
+      if (result === "rejected") {
+        console.error("Admin seed rejected — set a strong ADMIN_PASSWORD (min 12 chars)");
+      }
+    })
+    .catch((e) => console.error("Admin seed failed", e));
 }
 
 export default {

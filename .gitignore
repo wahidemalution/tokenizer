@@ -1,4 +1,5 @@
 .superpowers/
+docs/superpowers/
 .worktrees/
 .omop/
 node_modules/

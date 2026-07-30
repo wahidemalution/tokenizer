@@ -42,7 +42,7 @@ afterAll(async () => {
 
 test("createSession and getSessionUser", async () => {
   if (skip()) return;
-  const u = await createAdminUser(db, { username: "ops", password: "pass-long-1" });
+  const u = await createAdminUser(db, { username: "ops", password: "pass-long-12x" });
   const s = await createSession(db, u.id);
   const got = await getSessionUser(db, s.id);
   expect(got?.username).toBe("ops");
@@ -52,7 +52,7 @@ test("createSession and getSessionUser", async () => {
 
 test("deactivate clears sessions", async () => {
   if (skip()) return;
-  const u = await createAdminUser(db, { username: "x", password: "pass-long-1" });
+  const u = await createAdminUser(db, { username: "x", password: "pass-long-12x" });
   const s = await createSession(db, u.id);
   await setAdminActive(db, u.id, false);
   await destroySessionsForUser(db, u.id);
@@ -62,7 +62,14 @@ test("deactivate clears sessions", async () => {
 test("seedAdminIfEmpty seeds once", async () => {
   if (skip()) return;
   Bun.env.ADMIN_USERNAME = "seedadmin";
-  Bun.env.ADMIN_PASSWORD = "seed-pass-strong";
+  Bun.env.ADMIN_PASSWORD = "seed-pass-strong-ok";
   expect(await seedAdminIfEmpty(db)).toBe("seeded");
   expect(await seedAdminIfEmpty(db)).toBe("skipped");
+});
+
+test("seedAdminIfEmpty rejects weak default password", async () => {
+  if (skip()) return;
+  Bun.env.ADMIN_USERNAME = "admin";
+  Bun.env.ADMIN_PASSWORD = "change-me-strong";
+  expect(await seedAdminIfEmpty(db)).toBe("rejected");
 });

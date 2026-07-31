@@ -38,8 +38,7 @@ export type NewOrderInput = {
   telegram?: string | null;
 };
 
-const TTL_MS = 30 * 60 * 1000;
-const AMOUNT_UNIQUE_CODE_MAX = 999;
+const AMOUNT_UNIQUE_CODE_MAX = 0; // removed tolerance logic - bayar.gg no longer supports unique_code
 
 export function isPaidAmountAcceptable(
   orderAmountIdr: number,

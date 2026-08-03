@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { renderToString } from "hono/jsx/dom/server";
 import { getDb } from "../db/client";
+import { adminUrl } from "../lib/admin-url";
 import {
   findAdminByUsername,
   createAdminUser,
@@ -57,7 +58,7 @@ const admin = new Hono<AdminEnv>();
 admin.get("/login", async (c) => {
   const sid = getCookie(c, SESSION_COOKIE);
   const user = await getSessionUser(getDb(), sid);
-  if (user) return c.redirect("/admin");
+  if (user) return c.redirect(adminUrl("/"));
   const error = c.req.query("error");
   const next = c.req.query("next") ?? undefined;
   // Issue CSRF cookie for login form (double-submit)
@@ -70,13 +71,13 @@ admin.get("/login", async (c) => {
 admin.post("/login", async (c) => {
   const ip = clientIp(c);
   if (!rateLimitOk(ip, { windowMs: 15 * 60_000, max: 10, bucket: "admin-login" })) {
-    return c.redirect("/admin/login?error=rate");
+    return c.redirect(`${adminUrl("/login")}?error=rate`);
   }
   const body = await c.req.parseBody();
   const cookieCsrf = getCookie(c, CSRF_COOKIE);
   const formCsrf = String(body[CSRF_FIELD] ?? "");
   if (!csrfTokensMatch(cookieCsrf, formCsrf)) {
-    return c.redirect("/admin/login?error=auth");
+    return c.redirect(`${adminUrl("/login")}?error=auth`);
   }
   const username = String(body.username ?? "").trim();
   const password = String(body.password ?? "");
@@ -87,7 +88,7 @@ admin.post("/login", async (c) => {
   const hash = row?.passwordHash ?? (await getDummyPasswordHash());
   const passwordOk = await verifyPassword(password, hash);
   if (!row || !row.isActive || !passwordOk) {
-    return c.redirect("/admin/login?error=auth");
+    return c.redirect(`${adminUrl("/login")}?error=auth`);
   }
 
   const db = getDb();
@@ -107,13 +108,13 @@ admin.post("/logout", requireAdmin, async (c) => {
   if (sid) await destroySession(getDb(), sid);
   deleteCookie(c, SESSION_COOKIE, clearSessionCookieOptions());
   deleteCookie(c, CSRF_COOKIE, clearCsrfCookieOptions());
-  return c.redirect("/admin/login");
+  return c.redirect(adminUrl("/login"));
 });
 
 admin.get("/", requireAdmin, async (c) => {
   const stats = await getDashboardStats(getDb());
   const html = renderToString(
-    <AdminLayout title="Dashboard" user={c.get("adminUser")} path="/admin" csrfToken={c.get("csrfToken")}>
+    <AdminLayout title="Dashboard" user={c.get("adminUser")} path={adminUrl("/")} csrfToken={c.get("csrfToken")}>
       <DashboardPage stats={stats} />
     </AdminLayout>
   );
@@ -128,7 +129,7 @@ admin.get("/orders", requireAdmin, async (c) => {
   const perPage = 20;
   const { rows, total } = await listOrders(getDb(), { status, fulfilled, q, page, perPage });
   const html = renderToString(
-    <AdminLayout title="Orders" user={c.get("adminUser")} path="/admin/orders" csrfToken={c.get("csrfToken")}>
+    <AdminLayout title="Orders" user={c.get("adminUser")} path={adminUrl("/orders")} csrfToken={c.get("csrfToken")}>
       <OrdersPage
         rows={rows}
         total={total}
@@ -150,7 +151,7 @@ admin.get("/orders/:id", requireAdmin, async (c) => {
     <AdminLayout
       title={`Order ${id.slice(0, 8)}`}
       user={c.get("adminUser")}
-      path="/admin/orders"
+      path={adminUrl("/orders")}
       csrfToken={c.get("csrfToken")}
     >
       <OrderDetailPage
@@ -175,8 +176,8 @@ admin.post("/orders/:id/fulfill", requireAdmin, async (c) => {
   const note = String(parsed.body.note ?? "").trim() || null;
   const user = c.get("adminUser");
   const order = await markFulfilled(getDb(), id, user.id, note);
-  if (!order) return c.redirect(`/admin/orders/${id}?error=fulfill`);
-  return c.redirect(`/admin/orders/${id}?ok=fulfilled`);
+  if (!order) return c.redirect(`${adminUrl(`/orders/${id}`)}?error=fulfill`);
+  return c.redirect(`${adminUrl(`/orders/${id}`)}?ok=fulfilled`);
 });
 
 admin.post("/orders/:id/unfulfill", requireAdmin, async (c) => {
@@ -187,7 +188,7 @@ admin.post("/orders/:id/unfulfill", requireAdmin, async (c) => {
   }
   const id = c.req.param("id");
   await clearFulfilled(getDb(), id);
-  return c.redirect(`/admin/orders/${id}?ok=unfulfilled`);
+  return c.redirect(`${adminUrl(`/orders/${id}`)}?ok=unfulfilled`);
 });
 
 admin.post("/orders/:id/recheck", requireAdmin, async (c) => {
@@ -204,13 +205,13 @@ admin.post("/orders/:id/recheck", requireAdmin, async (c) => {
     result.message === "paid" || result.message === "already-paid"
       ? "ok=recheck"
       : `error=recheck`;
-  return c.redirect(`/admin/orders/${id}?${q}`);
+  return c.redirect(`${adminUrl(`/orders/${id}`)}?${q}`);
 });
 
 admin.get("/users", requireAdmin, async (c) => {
   const users = await listAdminUsers(getDb());
   const html = renderToString(
-    <AdminLayout title="Users" user={c.get("adminUser")} path="/admin/users" csrfToken={c.get("csrfToken")}>
+    <AdminLayout title="Users" user={c.get("adminUser")} path={adminUrl("/users")} csrfToken={c.get("csrfToken")}>
       <UsersPage
         users={users}
         currentUserId={c.get("adminUser").id}
@@ -233,18 +234,18 @@ admin.post("/users", requireAdmin, async (c) => {
   const username = String(body.username ?? "").trim();
   const password = String(body.password ?? "");
   const discordId = String(body.discord_id ?? "").trim() || null;
-  if (!username) return c.redirect("/admin/users?error=username-empty");
+  if (!username) return c.redirect(`${adminUrl("/users")}?error=username-empty`);
   const policy = validateAdminPassword(password, username);
   if (!policy.ok) {
     return c.redirect(
-      `/admin/users?error=${policy.reason === "too-short" ? "password-short" : "password-weak"}`
+      `${adminUrl("/users")}?error=${policy.reason === "too-short" ? "password-short" : "password-weak"}`
     );
   }
   try {
     await createAdminUser(getDb(), { username, password, discordId });
-    return c.redirect("/admin/users?ok=created");
+    return c.redirect(`${adminUrl("/users")}?ok=created`);
   } catch {
-    return c.redirect("/admin/users?error=create");
+    return c.redirect(`${adminUrl("/users")}?error=create`);
   }
 });
 
@@ -253,14 +254,14 @@ admin.post("/users/:id/deactivate", requireAdmin, async (c) => {
   if (!parsed.ok) return parsed.response;
   const id = c.req.param("id");
   if (id === c.get("adminUser").id) {
-    return c.redirect("/admin/users?error=cannot-self-deactivate");
+    return c.redirect(`${adminUrl("/users")}?error=cannot-self-deactivate`);
   }
   if (await wouldDeactivateLastActiveAdmin(getDb(), id)) {
-    return c.redirect("/admin/users?error=last-admin");
+    return c.redirect(`${adminUrl("/users")}?error=last-admin`);
   }
   await setAdminActive(getDb(), id, false);
   await destroySessionsForUser(getDb(), id);
-  return c.redirect("/admin/users?ok=deactivated");
+  return c.redirect(`${adminUrl("/users")}?ok=deactivated`);
 });
 
 admin.post("/users/:id/activate", requireAdmin, async (c) => {
@@ -268,7 +269,7 @@ admin.post("/users/:id/activate", requireAdmin, async (c) => {
   if (!parsed.ok) return parsed.response;
   const id = c.req.param("id");
   await setAdminActive(getDb(), id, true);
-  return c.redirect("/admin/users?ok=activated");
+  return c.redirect(`${adminUrl("/users")}?ok=activated`);
 });
 
 admin.post("/users/:id/password", requireAdmin, async (c) => {
@@ -282,16 +283,16 @@ admin.post("/users/:id/password", requireAdmin, async (c) => {
   const policy = validateAdminPassword(password);
   if (!policy.ok) {
     return c.redirect(
-      `/admin/users?error=${policy.reason === "too-short" ? "password-short" : "password-weak"}`
+      `${adminUrl("/users")}?error=${policy.reason === "too-short" ? "password-short" : "password-weak"}`
     );
   }
   try {
     await setAdminPassword(getDb(), id, password);
   } catch {
-    return c.redirect("/admin/users?error=password-weak");
+    return c.redirect(`${adminUrl("/users")}?error=password-weak`);
   }
   await destroySessionsForUser(getDb(), id);
-  return c.redirect("/admin/users?ok=password");
+  return c.redirect(`${adminUrl("/users")}?ok=password`);
 });
 
 export { admin as adminRoutes };

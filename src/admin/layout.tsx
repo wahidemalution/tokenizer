@@ -2,12 +2,13 @@ import type { FC, Child } from "hono/jsx";
 import type { AdminUserPublic } from "../lib/admin-users";
 import { Layout } from "../server";
 import { Alert, CsrfField } from "./ui";
+import { adminBase, adminUrl } from "../lib/admin-url";
 
 const NAV = [
   {
-    href: "/admin",
+    href: adminUrl("/"),
     label: "Dashboard",
-    match: (p: string) => p === "/admin" || p === "/admin/",
+    match: (p: string) => p === adminBase() || p === adminUrl("/"),
     icon: (
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
         <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" stroke-linejoin="round" />
@@ -15,9 +16,9 @@ const NAV = [
     ),
   },
   {
-    href: "/admin/orders",
+    href: adminUrl("/orders"),
     label: "Orders",
-    match: (p: string) => p.startsWith("/admin/orders"),
+    match: (p: string) => p.startsWith(adminUrl("/orders")),
     icon: (
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
         <path d="M7 7h14l-1.5 9H8.5L7 7Z" stroke-linejoin="round" />
@@ -28,9 +29,9 @@ const NAV = [
     ),
   },
   {
-    href: "/admin/users",
+    href: adminUrl("/users"),
     label: "Users",
-    match: (p: string) => p.startsWith("/admin/users"),
+    match: (p: string) => p.startsWith(adminUrl("/users")),
     icon: (
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
         <circle cx="12" cy="8" r="3.25" />
@@ -79,7 +80,7 @@ export const AdminLayout: FC<{
   error?: string | null;
   path?: string;
   csrfToken?: string;
-}> = ({ title, user, children, flash, error, path = "/admin", csrfToken }) => {
+}> = ({ title, user, children, flash, error, path = adminBase(), csrfToken }) => {
   return (
     <Layout title={`${title} · Admin TOKENIZER`}>
       <div class="min-h-screen bg-background text-foreground">
@@ -110,7 +111,7 @@ export const AdminLayout: FC<{
                     <div class="text-xs text-muted">Operator</div>
                   </div>
                 </div>
-                <form method="post" action="/admin/logout">
+                <form method="post" action={adminUrl("/logout")}>
                   {csrfToken ? <CsrfField token={csrfToken} /> : null}
                   <button
                     type="submit"
@@ -146,7 +147,7 @@ export const AdminLayout: FC<{
                     >
                       Lihat situs ↗
                     </a>
-                    <form method="post" action="/admin/logout" class="lg:hidden">
+                    <form method="post" action={adminUrl("/logout")} class="lg:hidden">
                       {csrfToken ? <CsrfField token={csrfToken} /> : null}
                       <button
                         type="submit"

@@ -10,6 +10,9 @@ import {
 import { createOrder, markPaid } from "../lib/orders";
 import type { Plan } from "../lib/plans";
 import { CSRF_COOKIE, CSRF_FIELD } from "../lib/auth/csrf";
+import { Hono } from "hono";
+import { adminRoutes } from "./routes";
+import { withEnv } from "../lib/test-helpers";
 
 const url = getTestDatabaseUrl();
 const plan: Plan = {
@@ -216,4 +219,16 @@ test("fulfill paid order via POST", async () => {
   expect(res.status).toBe(302);
   expect(res.headers.get("location") || "").toContain("ok=fulfilled");
   void u;
+});
+
+test("admin works under a custom ADMIN_PATH prefix", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  await withEnv({ ADMIN_PATH: "/my-secret" }, async () => {
+    const customApp = new Hono();
+    customApp.route("/my-secret", adminRoutes);
+    const res = await customApp.fetch(new Request("http://x/my-secret", { redirect: "manual" }));
+    expect([302, 301]).toContain(res.status);
+    expect(res.headers.get("location") || "").toContain("/my-secret/login");
+  });
 });

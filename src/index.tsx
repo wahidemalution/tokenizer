@@ -54,7 +54,7 @@ function truncateWebhookRaw(value: unknown): unknown {
 const app = new Hono();
 
 app.use("*", securityHeaders);
-app.route("/admin", adminRoutes);
+app.route(env.adminPath, adminRoutes);
 
 app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 app.use("/app.css", serveStatic({ path: "./public/app.css" }));

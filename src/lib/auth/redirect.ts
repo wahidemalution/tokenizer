@@ -1,24 +1,31 @@
+import { adminBase } from "../admin-url";
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
  * Allow only same-origin relative admin paths.
- * Rejects protocol-relative, backslash, encoded tricks, and non-/admin targets.
+ * Rejects protocol-relative, backslash, encoded tricks, and non-admin targets.
  */
 export function safeAdminNext(raw: string | undefined | null): string {
-  if (!raw) return "/admin";
+  const base = adminBase();
+  if (!raw) return base;
   let path = raw.trim();
   try {
     path = decodeURIComponent(path);
   } catch {
-    return "/admin";
+    return base;
   }
   path = path.replace(/\\/g, "");
-  if (!path.startsWith("/admin")) return "/admin";
-  if (path.startsWith("//")) return "/admin";
-  if (path.includes("://")) return "/admin";
-  if (path.includes("@")) return "/admin";
-  if (path.includes("..")) return "/admin";
-  // Only path + optional query; no fragment abuse for open redirect
-  if (!/^\/admin(?:\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*)?(?:\?[A-Za-z0-9._~!$&'()*+,;=:@%/?-]*)?$/.test(path)) {
-    return "/admin";
+  if (!path.startsWith(base)) return base;
+  if (path.startsWith("//")) return base;
+  if (path.includes("://")) return base;
+  if (path.includes("@")) return base;
+  if (path.includes("..")) return base;
+  const rest = path.slice(base.length);
+  if (!/^(?:[A-Za-z0-9._~!$&'()*+,;=:@%/-]|\?[A-Za-z0-9._~!$&'()*+,;=:@%/?-]*)*$/.test(rest)) {
+    return base;
   }
   return path;
 }

@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { env } from "../env";
+import { adminBase } from "../admin-url";
 
 export const CSRF_COOKIE = "admin_csrf";
 export const CSRF_FIELD = "_csrf";
@@ -17,7 +18,7 @@ export function csrfCookieOptions(expiresAt: Date): {
 } {
   return {
     httpOnly: true,
-    path: "/admin",
+    path: adminBase(),
     sameSite: "Strict",
     secure: env.isHttps,
     expires: expiresAt,
@@ -32,7 +33,7 @@ export function clearCsrfCookieOptions(): {
 } {
   return {
     httpOnly: true,
-    path: "/admin",
+    path: adminBase(),
     sameSite: "Strict",
     secure: env.isHttps,
   };

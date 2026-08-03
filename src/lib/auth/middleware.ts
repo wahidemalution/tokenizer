@@ -12,6 +12,7 @@ import {
 } from "./csrf";
 import { getSessionUser, SESSION_COOKIE, SESSION_TTL_MS } from "./session";
 import { safeAdminNext } from "./redirect";
+import { adminBase, adminUrl, isAdminPath } from "../admin-url";
 
 export type AdminEnv = {
   Variables: {
@@ -34,9 +35,9 @@ export const requireAdmin = createMiddleware<AdminEnv>(async (c, next) => {
   const sid = getCookie(c, SESSION_COOKIE);
   const user = await getSessionUser(db, sid);
   if (!user) {
-    const rawPath = c.req.path.startsWith("/admin") ? c.req.path : `/admin${c.req.path}`;
+    const rawPath = isAdminPath(c.req.path) ? c.req.path : adminUrl(c.req.path);
     const nextUrl = encodeURIComponent(safeAdminNext(rawPath));
-    return c.redirect(`/admin/login?next=${nextUrl}`);
+    return c.redirect(`${adminUrl("/login")}?next=${nextUrl}`);
   }
   const csrfToken = ensureCsrfCookie(c);
   c.set("adminUser", user);

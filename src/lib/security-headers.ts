@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { env } from "./env";
+import { isAdminPath } from "./admin-url";
 
 /** Baseline security headers for the whole app (admin + public). */
 export const securityHeaders = createMiddleware(async (c, next) => {
@@ -11,7 +12,7 @@ export const securityHeaders = createMiddleware(async (c, next) => {
   c.header("X-DNS-Prefetch-Control", "off");
   // Admin is form/SSR only; public pages load fonts + Turnstile + client.js
   const path = c.req.path;
-  if (path.startsWith("/admin")) {
+  if (isAdminPath(path)) {
     c.header(
       "Content-Security-Policy",
       [

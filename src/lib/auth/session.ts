@@ -3,10 +3,10 @@ import type { AppDb } from "../../db/client";
 import { adminSessions, adminUsers } from "../../db/schema";
 import type { AdminUserPublic } from "../admin-users";
 import { env } from "../env";
+import { adminBase } from "../admin-url";
 
 export const SESSION_COOKIE = "admin_session";
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-export const SESSION_COOKIE_PATH = "/admin";
 
 function toPublic(r: typeof adminUsers.$inferSelect): AdminUserPublic {
   return {
@@ -82,7 +82,7 @@ export function sessionCookieOptions(expiresAt: Date): {
 } {
   return {
     httpOnly: true,
-    path: SESSION_COOKIE_PATH,
+    path: adminBase(),
     sameSite: "Strict",
     secure: env.isHttps,
     expires: expiresAt,
@@ -97,7 +97,7 @@ export function clearSessionCookieOptions(): {
 } {
   return {
     httpOnly: true,
-    path: SESSION_COOKIE_PATH,
+    path: adminBase(),
     sameSite: "Strict",
     secure: env.isHttps,
   };

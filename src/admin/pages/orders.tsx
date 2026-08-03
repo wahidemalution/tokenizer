@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { Order } from "../../lib/orders";
+import { adminUrl } from "../../lib/admin-url";
 import { formatIdr } from "../../lib/plans";
 import {
   Btn,
@@ -30,7 +31,7 @@ export const OrdersPage: FC<{
     if (filters.fulfilled && filters.fulfilled !== "all") u.set("fulfilled", filters.fulfilled);
     if (filters.q) u.set("q", filters.q);
     u.set("page", String(p));
-    return `/admin/orders?${u.toString()}`;
+    return `${adminUrl("/orders")}?${u.toString()}`;
   };
 
   return (
@@ -43,7 +44,7 @@ export const OrdersPage: FC<{
       <Card padding={false} class="overflow-hidden">
         <form
           method="get"
-          action="/admin/orders"
+          action={adminUrl("/orders")}
           class="flex flex-col gap-3 border-b border-border bg-elevated/30 p-4 sm:flex-row sm:flex-wrap sm:items-end"
         >
           <div class="min-w-[8rem] flex-1 sm:max-w-[10rem]">
@@ -127,7 +128,7 @@ export const OrdersPage: FC<{
                     </td>
                     <td class="px-4 py-3">
                       <a
-                        href={`/admin/orders/${o.id}`}
+                        href={adminUrl(`/orders/${o.id}`)}
                         class="font-medium text-foreground hover:text-brand"
                       >
                         {o.email}
@@ -157,7 +158,7 @@ export const OrdersPage: FC<{
                       {o.invoiceId ?? "—"}
                     </td>
                     <td class="px-4 py-3 text-right">
-                      <Btn href={`/admin/orders/${o.id}`} variant="ghost" size="sm">
+                      <Btn href={adminUrl(`/orders/${o.id}`)} variant="ghost" size="sm">
                         Detail
                       </Btn>
                     </td>

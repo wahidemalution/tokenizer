@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { DashboardStats } from "../../lib/orders";
+import { adminUrl } from "../../lib/admin-url";
 import { formatIdr } from "../../lib/plans";
 import { Btn, Card, PageHeader } from "../ui";
 
@@ -9,31 +10,31 @@ export const DashboardPage: FC<{ stats: DashboardStats }> = ({ stats }) => {
       label: "Pending",
       value: String(stats.pending),
       hint: "Menunggu pembayaran",
-      href: "/admin/orders?status=pending",
+      href: adminUrl("/orders?status=pending"),
     },
     {
       label: "Paid hari ini",
       value: String(stats.paidToday),
       hint: "Zona Asia/Jakarta",
-      href: "/admin/orders?status=paid",
+      href: adminUrl("/orders?status=paid"),
     },
     {
       label: "Revenue hari ini",
       value: formatIdr(stats.revenueTodayIdr),
       hint: "Total final amount",
-      href: "/admin/orders?status=paid",
+      href: adminUrl("/orders?status=paid"),
     },
     {
       label: "Expired",
       value: String(stats.expired),
       hint: "Invoice kadaluarsa",
-      href: "/admin/orders?status=expired",
+      href: adminUrl("/orders?status=expired"),
     },
     {
       label: "Perlu fulfillment",
       value: String(stats.unfulfilledPaid),
       hint: "Paid, belum dikirim key",
-      href: "/admin/orders?status=paid&fulfilled=no",
+      href: adminUrl("/orders?status=paid&fulfilled=no"),
     },
   ];
 
@@ -44,10 +45,10 @@ export const DashboardPage: FC<{ stats: DashboardStats }> = ({ stats }) => {
         description="Ringkasan operasional order TOKENIZER. Metrik “hari ini” memakai zona waktu Asia/Jakarta."
         actions={
           <>
-            <Btn href="/admin/orders?status=paid&fulfilled=no" variant="primary" size="sm">
+            <Btn href={adminUrl("/orders?status=paid&fulfilled=no")} variant="primary" size="sm">
               Antrian fulfill
             </Btn>
-            <Btn href="/admin/orders" variant="secondary" size="sm">
+            <Btn href={adminUrl("/orders")} variant="secondary" size="sm">
               Semua orders
             </Btn>
           </>
@@ -103,21 +104,21 @@ export const DashboardPage: FC<{ stats: DashboardStats }> = ({ stats }) => {
           <h2 class="text-sm font-semibold">Tautan</h2>
           <div class="mt-4 grid gap-2">
             <a
-              href="/admin/orders?status=paid"
+              href={adminUrl("/orders?status=paid")}
               class="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-sm transition-colors hover:border-border-strong"
             >
               <span>Order lunas</span>
               <span class="text-faint">→</span>
             </a>
             <a
-              href="/admin/orders?status=pending"
+              href={adminUrl("/orders?status=pending")}
               class="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-sm transition-colors hover:border-border-strong"
             >
               <span>Menunggu bayar</span>
               <span class="text-faint">→</span>
             </a>
             <a
-              href="/admin/users"
+              href={adminUrl("/users")}
               class="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5 text-sm transition-colors hover:border-border-strong"
             >
               <span>Kelola operator</span>

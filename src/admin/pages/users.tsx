@@ -1,5 +1,6 @@
 import type { FC } from "hono/jsx";
 import type { AdminUserPublic } from "../../lib/admin-users";
+import { adminUrl } from "../../lib/admin-url";
 import {
   Alert,
   Btn,
@@ -99,14 +100,14 @@ export const UsersPage: FC<{
                           <div class="flex flex-col items-end gap-2">
                             {u.id !== currentUserId ? (
                               u.isActive ? (
-                                <form method="post" action={`/admin/users/${u.id}/deactivate`}>
+                                <form method="post" action={adminUrl(`/users/${u.id}/deactivate`)}>
                                   <CsrfField token={csrfToken} />
                                   <Btn type="submit" variant="ghost" size="sm">
                                     Nonaktifkan
                                   </Btn>
                                 </form>
                               ) : (
-                                <form method="post" action={`/admin/users/${u.id}/activate`}>
+                                <form method="post" action={adminUrl(`/users/${u.id}/activate`)}>
                                   <CsrfField token={csrfToken} />
                                   <Btn type="submit" variant="secondary" size="sm">
                                     Aktifkan
@@ -116,7 +117,7 @@ export const UsersPage: FC<{
                             ) : null}
                             <form
                               method="post"
-                              action={`/admin/users/${u.id}/password`}
+                              action={adminUrl(`/users/${u.id}/password`)}
                               class="flex max-w-[14rem] gap-1.5"
                             >
                               <CsrfField token={csrfToken} />
@@ -149,7 +150,7 @@ export const UsersPage: FC<{
               title="Tambah operator"
               description="Password minimal 12 karakter, bukan default lemah. Discord ID opsional."
             />
-            <form method="post" action="/admin/users" class="space-y-4">
+            <form method="post" action={adminUrl("/users")} class="space-y-4">
               <CsrfField token={csrfToken} />
               <Field label="Username" name="username">
                 <input

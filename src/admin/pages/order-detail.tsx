@@ -1,6 +1,7 @@
 import type { FC } from "hono/jsx";
 import type { Order } from "../../lib/orders";
 import type { PaymentEvent } from "../../lib/payment-events";
+import { adminUrl } from "../../lib/admin-url";
 import { formatIdr } from "../../lib/plans";
 import {
   Alert,
@@ -55,7 +56,7 @@ export const OrderDetailPage: FC<{
 
       <PageHeader
         breadcrumb={[
-          { label: "Orders", href: "/admin/orders" },
+          { label: "Orders", href: adminUrl("/orders") },
           { label: order.id.slice(0, 8) + "…" },
         ]}
         title={order.email}
@@ -63,14 +64,14 @@ export const OrderDetailPage: FC<{
         actions={
           <>
             {order.invoiceId ? (
-              <form method="post" action={`/admin/orders/${order.id}/recheck`}>
+              <form method="post" action={adminUrl(`/orders/${order.id}/recheck`)}>
                 <CsrfField token={csrfToken} />
                 <Btn type="submit" variant="secondary" size="sm">
                   Re-check bayar.gg
                 </Btn>
               </form>
             ) : null}
-            <Btn href="/admin/orders" variant="ghost" size="sm">
+            <Btn href={adminUrl("/orders")} variant="ghost" size="sm">
               Kembali
             </Btn>
           </>
@@ -190,7 +191,7 @@ export const OrderDetailPage: FC<{
                 Fulfillment hanya tersedia untuk order berstatus <strong class="text-foreground">paid</strong>.
               </p>
             ) : !order.fulfilledAt ? (
-              <form method="post" action={`/admin/orders/${order.id}/fulfill`} class="space-y-4">
+              <form method="post" action={adminUrl(`/orders/${order.id}/fulfill`)} class="space-y-4">
                 <CsrfField token={csrfToken} />
                 <Field label="Catatan internal" name="note" hint="Opsional — mis. channel pengiriman key">
                   <textarea
@@ -217,7 +218,7 @@ export const OrderDetailPage: FC<{
                     <p class="mt-2 font-mono text-[11px] text-faint">by {order.fulfilledBy}</p>
                   ) : null}
                 </div>
-                <form method="post" action={`/admin/orders/${order.id}/unfulfill`}>
+                <form method="post" action={adminUrl(`/orders/${order.id}/unfulfill`)}>
                   <CsrfField token={csrfToken} />
                   <Btn type="submit" variant="danger" size="sm" class="w-full">
                     Batalkan fulfillment

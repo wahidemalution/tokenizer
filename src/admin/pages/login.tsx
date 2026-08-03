@@ -1,4 +1,5 @@
 import type { FC } from "hono/jsx";
+import { adminUrl } from "../../lib/admin-url";
 import { AdminLayout } from "../layout";
 import { Alert, Btn, CsrfField, Field, inputClass } from "../ui";
 
@@ -31,7 +32,7 @@ export const LoginPage: FC<{ error?: string | null; next?: string; csrfToken: st
           <div class="rounded-2xl border border-border bg-panel/90 p-6 shadow-xl shadow-black/40 backdrop-blur sm:p-8">
             {errText ? <Alert tone="error">{errText}</Alert> : null}
 
-            <form method="post" action="/admin/login" class="space-y-4">
+            <form method="post" action={adminUrl("/login")} class="space-y-4">
               <CsrfField token={csrfToken} />
               {next ? <input type="hidden" name="next" value={next} /> : null}
               <Field label="Username" name="username">

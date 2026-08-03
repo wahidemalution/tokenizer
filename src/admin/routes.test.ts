@@ -106,19 +106,21 @@ function csrfFromCookieHeader(cookie: string): string {
 
 test("GET /admin redirects to login", async () => {
   if (skip()) return;
-  const res = await app.fetch(new Request("http://x/admin", { redirect: "manual" }));
+  const base = adminBase();
+  const res = await app.fetch(new Request(`http://x${base}`, { redirect: "manual" }));
   expect([302, 301]).toContain(res.status);
-  expect(res.headers.get("location") || "").toContain("/admin/login");
+  expect(res.headers.get("location") || "").toContain(`${base}/login`);
 });
 
 test("login success sets cookie", async () => {
   if (skip()) return;
   await createAdminUser(getDb(), { username: "admin", password: PASS });
-  const loginPage = await app.fetch(new Request("http://x/admin/login"));
+  const base = adminBase();
+  const loginPage = await app.fetch(new Request(`http://x${base}/login`));
   const cookies = parseCookies(loginPage.headers.get("set-cookie"));
   const csrf = cookies[CSRF_COOKIE];
   const res = await app.fetch(
-    new Request("http://x/admin/login", {
+    new Request(`http://x${base}/login`, {
       method: "POST",
       body: new URLSearchParams({
         username: "admin",
@@ -139,8 +141,9 @@ test("login success sets cookie", async () => {
 test("login without CSRF fails", async () => {
   if (skip()) return;
   await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const base = adminBase();
   const res = await app.fetch(
-    new Request("http://x/admin/login", {
+    new Request(`http://x${base}/login`, {
       method: "POST",
       body: new URLSearchParams({ username: "admin", password: PASS }),
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -156,7 +159,8 @@ test("dashboard with session returns 200", async () => {
   if (skip()) return;
   await createAdminUser(getDb(), { username: "admin", password: PASS });
   const { cookie } = await loginSession("admin", PASS);
-  const res = await app.fetch(new Request("http://x/admin", { headers: { cookie } }));
+  const base = adminBase();
+  const res = await app.fetch(new Request(`http://x${base}`, { headers: { cookie } }));
   expect(res.status).toBe(200);
   const html = await res.text();
   expect(html).toContain("Pending");
@@ -169,8 +173,9 @@ test("orders list shows seeded order email", async () => {
   await createAdminUser(getDb(), { username: "admin", password: PASS });
   await createOrder(getDb(), { id: "ord-list", plan, email: "buyer@x.co" });
   const { cookie } = await loginSession("admin", PASS);
+  const base = adminBase();
   const res = await app.fetch(
-    new Request("http://x/admin/orders", { headers: { cookie } })
+    new Request(`http://x${base}/orders`, { headers: { cookie } })
   );
   expect(res.status).toBe(200);
   expect(await res.text()).toContain("buyer@x.co");
@@ -181,8 +186,9 @@ test("self-deactivate forbidden", async () => {
   const u = await createAdminUser(getDb(), { username: "admin", password: PASS });
   const { cookie } = await loginSession("admin", PASS);
   const csrf = csrfFromCookieHeader(cookie);
+  const base = adminBase();
   const res = await app.fetch(
-    new Request(`http://x/admin/users/${u.id}/deactivate`, {
+    new Request(`http://x${base}/users/${u.id}/deactivate`, {
       method: "POST",
       headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ [CSRF_FIELD]: csrf }),
@@ -199,8 +205,9 @@ test("POST without CSRF is rejected", async () => {
   await createOrder(getDb(), { id: "ord-csrf", plan, email: "a@b.co" });
   await markPaid(getDb(), "ord-csrf", new Date().toISOString(), 40000);
   const { cookie } = await loginSession("admin", PASS);
+  const base = adminBase();
   const res = await app.fetch(
-    new Request("http://x/admin/orders/ord-csrf/fulfill", {
+    new Request(`http://x${base}/orders/ord-csrf/fulfill`, {
       method: "POST",
       headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ note: "sent" }),
@@ -217,8 +224,9 @@ test("fulfill paid order via POST", async () => {
   await markPaid(getDb(), "ord-ff", new Date().toISOString(), 40000);
   const { cookie } = await loginSession("admin", PASS);
   const csrf = csrfFromCookieHeader(cookie);
+  const base = adminBase();
   const res = await app.fetch(
-    new Request("http://x/admin/orders/ord-ff/fulfill", {
+    new Request(`http://x${base}/orders/ord-ff/fulfill`, {
       method: "POST",
       headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({ note: "sent", [CSRF_FIELD]: csrf }),

@@ -8,7 +8,7 @@ Stack: **Bun**, **Hono** (SSR), **Tailwind CSS v4**, **PostgreSQL** (Drizzle ORM
 
 - Halaman home, pricing, checkout, order success, legal
 - Checkout → invoice bayar.gg → webhook → status `paid` + Discord
-- Admin di `/admin`: login, statistik, list/detail order, log webhook, re-check bayar.gg, fulfill, kelola user
+- Admin di `{ADMIN_PATH}` (default `/admin`): login, statistik, list/detail order, log webhook, re-check bayar.gg, fulfill, kelola user
 
 ## Prasyarat
 
@@ -42,6 +42,7 @@ Isi minimal:
 | `DISCORD_WEBHOOK_URL` | ya (checkout) | Webhook notifikasi paid |
 | `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | ya (checkout) | Cloudflare Turnstile |
 | `ADMIN_USERNAME` / `ADMIN_PASSWORD` | seed | Admin pertama (hanya jika tabel user kosong) |
+| `ADMIN_PATH` | tidak | Prefix URL admin (default `/admin`); bisa slug acak/multi-segment, mis. `/secret/nested/panel` |
 | `PORT` | tidak | Default `3000` |
 | `TURNSTILE_BYPASS=1` | dev saja | Skip captcha di lokal |
 
@@ -78,7 +79,7 @@ bun run start          # prestart = build, lalu server
 Buka:
 
 - Landing: `http://localhost:3000`
-- Admin: `http://localhost:3000/admin/login`
+- Admin: `http://localhost:3000{ADMIN_PATH}/login` (default `{ADMIN_PATH}` = `/admin`)
 
 ### Checkout lokal + bayar.gg (HTTPS wajib)
 
@@ -133,7 +134,7 @@ docker compose up -d --build
 ```
 
 - App: `http://localhost:3000` (atau `APP_PORT`)
-- Admin: `http://localhost:3000/admin/login`
+- Admin: `http://localhost:3000{ADMIN_PATH}/login` (default `{ADMIN_PATH}` = `/admin`)
 - Migrasi dijalankan otomatis di entrypoint container `app`
 - `DATABASE_URL` di dalam container **selalu** mengarah ke service `db` (bukan host)
 
@@ -224,7 +225,7 @@ Atau pakai **Docker Compose** (bagian di atas) di production: reverse proxy (Cad
 
 ### E. Admin setelah deploy
 
-1. Buka `https://domain-anda.com/admin/login`
+1. Buka `https://domain-anda.com{ADMIN_PATH}/login` (default `{ADMIN_PATH}` = `/admin`)
 2. Login dengan `ADMIN_USERNAME` / `ADMIN_PASSWORD` (seed pertama)
 3. Opsional: buat operator lain di **Users**, lalu ganti password seed
 4. Alur ops: **Orders** → filter `paid` / belum fulfilled → detail → cek payment events → **Fulfill** + catatan
@@ -259,7 +260,7 @@ Atau pakai **Docker Compose** (bagian di atas) di production: reverse proxy (Cad
 
 ```
 src/
-  index.tsx          # public routes + mount /admin
+  index.tsx          # public routes + mount {ADMIN_PATH}
   admin/             # dashboard SSR
   db/                # schema, client, migrate, seed
   lib/               # orders, bayar, auth, payment-events, ...
@@ -275,7 +276,7 @@ docker/entrypoint.sh
 ## Keamanan (ringkas)
 
 - Password admin: Argon2id (`Bun.password`), min 12 karakter, default lemah ditolak
-- Session: cookie `admin_session` HttpOnly, SameSite=Strict, Path=/admin, Secure di HTTPS
+- Session: cookie `admin_session` HttpOnly, SameSite=Strict, Path={ADMIN_PATH} (default /admin), Secure di HTTPS
 - CSRF double-submit (`admin_csrf` + field `_csrf`) pada semua POST admin + login
 - Login rate limit per IP; mutasi admin juga di-rate-limit
 - Security headers (CSP admin, X-Frame-Options DENY, nosniff, HSTS di HTTPS)

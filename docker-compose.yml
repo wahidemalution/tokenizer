@@ -6,7 +6,7 @@
 #   docker compose up -d --build
 #
 # App: http://localhost:${APP_PORT:-3000}
-# Admin: http://localhost:${APP_PORT:-3000}/admin/login
+# Admin: http://localhost:${APP_PORT:-3000}{ADMIN_PATH}/login (default ADMIN_PATH=/admin)
 
 services:
   db:

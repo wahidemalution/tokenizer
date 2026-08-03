@@ -2,6 +2,18 @@ import { test, expect } from "bun:test";
 import { env, isCheckoutConfigured } from "./env";
 import { withEnv } from "./test-helpers";
 
+test("env.adminPath defaults to /admin", async () => {
+  await withEnv({ ADMIN_PATH: undefined }, () => {
+    expect(env.adminPath).toBe("/admin");
+  });
+});
+
+test("env.adminPath reads ADMIN_PATH", async () => {
+  await withEnv({ ADMIN_PATH: "/my-secret" }, () => {
+    expect(env.adminPath).toBe("/my-secret");
+  });
+});
+
 test("env reads BAYAR_GG_API_KEY", async () => {
   await withEnv({ BAYAR_GG_API_KEY: "key123" }, () => {
     expect(env.bayarApiKey).toBe("key123");

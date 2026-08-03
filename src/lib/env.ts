@@ -39,6 +39,9 @@ export const env = {
   get adminPassword() {
     return get("ADMIN_PASSWORD");
   },
+  get adminPath() {
+    return get("ADMIN_PATH") || "/admin";
+  },
   get orderViewSecret() {
     return get("ORDER_VIEW_SECRET");
   },

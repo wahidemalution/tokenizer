@@ -61,7 +61,7 @@ test("recheck marks paid when bayar says paid", async () => {
       JSON.stringify({
         success: true,
         status: "paid",
-        final_amount: 40100,
+        final_amount: 40000,
         paid_at: new Date().toISOString(),
       }),
       { status: 200, headers: { "content-type": "application/json" } }
@@ -79,7 +79,7 @@ test("recheck marks paid when bayar says paid", async () => {
             JSON.stringify({
               success: true,
               status: "paid",
-              final_amount: 40100,
+              final_amount: 40000,
               paid_at: new Date().toISOString(),
             }),
             { status: 200, headers: { "content-type": "application/json" } }

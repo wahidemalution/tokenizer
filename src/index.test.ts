@@ -154,7 +154,7 @@ test("verified paid webhook -> 200 paid, order paid + discordNotified + event", 
   await seedOrder("ord-paid", "INV-PAID");
   setupFetch({
     bayarStatus: "paid",
-    bayarFinalAmount: 45123,
+    bayarFinalAmount: 45000,
     bayarPaidAt: "2026-07-24 12:30:00",
     discordStatus: 204,
   });
@@ -166,7 +166,7 @@ test("verified paid webhook -> 200 paid, order paid + discordNotified + event", 
     expect(discordCallCount).toBe(1);
     const order = await getOrderById(getDb(), "ord-paid");
     expect(order!.status).toBe("paid");
-    expect(order!.finalAmountIdr).toBe(45123);
+    expect(order!.finalAmountIdr).toBe(45000);
     expect(order!.discordNotified).toBe(true);
     const events = await listPaymentEventsForOrder(getDb(), "ord-paid");
     expect(events.some((e) => e.message === "paid")).toBe(true);
@@ -199,7 +199,7 @@ test("double webhook -> second returns 200 already-paid", async () => {
   await seedOrder("ord-double", "INV-DOUBLE");
   setupFetch({
     bayarStatus: "paid",
-    bayarFinalAmount: 45123,
+    bayarFinalAmount: 45000,
     bayarPaidAt: "2026-07-24 12:30:00",
     discordStatus: 204,
   });

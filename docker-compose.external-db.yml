@@ -43,3 +43,5 @@ services:
       # No weak defaults — empty means seed is skipped / refused (same as main compose)
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Admin panel path prefix (default: /admin). Gunakan slug acak di production.
+      ADMIN_PATH: ${ADMIN_PATH:-/admin}

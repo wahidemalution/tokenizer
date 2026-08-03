@@ -60,6 +60,8 @@ services:
       # No weak defaults — set strong ADMIN_PASSWORD (min 12 chars) or seed is refused
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Admin panel path prefix (default: /admin). Gunakan slug acak di production.
+      ADMIN_PATH: ${ADMIN_PATH:-/admin}
 
 volumes:
   pgdata:

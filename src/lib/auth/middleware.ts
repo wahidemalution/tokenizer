@@ -12,7 +12,7 @@ import {
 } from "./csrf";
 import { getSessionUser, SESSION_COOKIE, SESSION_TTL_MS } from "./session";
 import { safeAdminNext } from "./redirect";
-import { adminBase, adminUrl, isAdminPath } from "../admin-url";
+import { adminUrl, isAdminPath } from "../admin-url";
 
 export type AdminEnv = {
   Variables: {

@@ -116,10 +116,10 @@ test("expireIfDue does not overwrite paid when race with concurrent markPaid", a
   expect((await getOrderById(db, "ord-race"))!.status).toBe("paid");
 });
 
-test("isPaidAmountAcceptable allows exact and unique-code variance", () => {
+test("isPaidAmountAcceptable allows exact amount only", () => {
   expect(isPaidAmountAcceptable(40000, 40000)).toBe(true);
-  expect(isPaidAmountAcceptable(40000, 40123)).toBe(true);
-  expect(isPaidAmountAcceptable(40000, 40999)).toBe(true);
+  expect(isPaidAmountAcceptable(40000, 40123)).toBe(false);
+  expect(isPaidAmountAcceptable(40000, 40999)).toBe(false);
   expect(isPaidAmountAcceptable(40000, 41000)).toBe(false);
   expect(isPaidAmountAcceptable(40000, 39999)).toBe(false);
   expect(isPaidAmountAcceptable(40000, null)).toBe(false);

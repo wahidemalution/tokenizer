@@ -1,9 +1,5 @@
 import { adminBase } from "../admin-url";
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /**
  * Allow only same-origin relative admin paths.
  * Rejects protocol-relative, backslash, encoded tricks, and non-admin targets.
@@ -24,7 +20,9 @@ export function safeAdminNext(raw: string | undefined | null): string {
   if (path.includes("@")) return base;
   if (path.includes("..")) return base;
   const rest = path.slice(base.length);
-  if (!/^(?:[A-Za-z0-9._~!$&'()*+,;=:@%/-]|\?[A-Za-z0-9._~!$&'()*+,;=:@%/?-]*)*$/.test(rest)) {
+  if (rest === "") return path;
+  if (!rest.startsWith("/")) return base;
+  if (!/^\/[A-Za-z0-9._~!$&'()*+,;=:@%/-]*(?:\?[A-Za-z0-9._~!$&'()*+,;=:@%/?-]*)?$/.test(rest)) {
     return base;
   }
   return path;

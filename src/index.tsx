@@ -11,6 +11,7 @@ import { PrivacyPage } from "./pages/privacy";
 import { RefundPage } from "./pages/refund";
 import { getPlan } from "./lib/plans";
 import { getDb } from "./lib/db";
+import { adminBase } from "./lib/admin-url";
 import {
   createOrder,
   getOrderById,
@@ -54,7 +55,7 @@ function truncateWebhookRaw(value: unknown): unknown {
 const app = new Hono();
 
 app.use("*", securityHeaders);
-app.route(env.adminPath, adminRoutes);
+app.route(adminBase(), adminRoutes);
 
 app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 app.use("/app.css", serveStatic({ path: "./public/app.css" }));

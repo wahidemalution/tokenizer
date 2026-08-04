@@ -45,6 +45,9 @@ export const env = {
   get orderViewSecret() {
     return get("ORDER_VIEW_SECRET");
   },
+  get trustProxy() {
+    return get("TRUST_PROXY") === "1";
+  },
   get isHttps() {
     return this.baseUrl.startsWith("https://");
   },
@@ -62,4 +65,35 @@ export function isCheckoutConfigured(): { ok: boolean; missing: string[] } {
   }
   if (!env.databaseUrl) missing.push("DATABASE_URL");
   return { ok: missing.length === 0, missing };
+}
+
+const BLOCKED_ORDER_VIEW_SECRETS = new Set([
+  "replace-with-long-random-secret",
+  "dev-only-order-view-secret",
+  "order-view-secret",
+  "secret",
+  "change-me",
+  "changeme",
+]);
+
+function isValidOrderViewSecret(secret: string): boolean {
+  const trimmed = secret.trim();
+  if (trimmed.length < 16) return false;
+  if (BLOCKED_ORDER_VIEW_SECRETS.has(trimmed.toLowerCase())) return false;
+  return true;
+}
+
+export function validateRuntimeEnv(): string[] {
+  if (!isValidOrderViewSecret(env.orderViewSecret)) {
+    throw new Error(
+      "ORDER_VIEW_SECRET is required (min 16 chars, not a placeholder). Generate with: openssl rand -base64 48"
+    );
+  }
+  const isProd = get("NODE_ENV") === "production";
+  const isLocalhostOrigin =
+    /^https?:\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(env.baseUrl);
+  if (isProd && !env.isHttps && !isLocalhostOrigin) {
+    throw new Error("PUBLIC_BASE_URL must use HTTPS in production");
+  }
+  return [];
 }

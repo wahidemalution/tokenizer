@@ -10,6 +10,8 @@ import { TermsPage } from "./pages/terms";
 import { PrivacyPage } from "./pages/privacy";
 import { RefundPage } from "./pages/refund";
 import { listPlansFromDb, getPlanFromDb, getPricingText, seedPlansIfEmpty } from "./lib/plans";
+import { listVisibleModelsFromDb, seedModelsIfEmpty } from "./lib/models";
+import type { Model } from "./lib/models";
 import { getDb } from "./lib/db";
 import { adminBase } from "./lib/admin-url";
 import {
@@ -63,11 +65,14 @@ app.use("/client.js", serveStatic({ path: "./public/client.js" }));
 
 app.get("/", async (c) => {
   const db = getDb();
-  const [plans, pricingText] = await Promise.all([
+  const [plans, pricingText, models] = await Promise.all([
     listPlansFromDb(db),
     getPricingText(db),
+    listVisibleModelsFromDb(db),
   ]);
-  const html = renderToString(<HomePage plans={plans} pricingText={pricingText} />);
+  const html = renderToString(
+    <HomePage plans={plans} pricingText={pricingText} models={models} />
+  );
   return c.html(`<!doctype html>${html}`);
 });
 
@@ -398,6 +403,11 @@ if (!isTestRuntime && import.meta.main) {
       if (result === "seeded") console.log("Plans seeded from defaults");
     })
     .catch((e) => console.error("Plans seed failed", e));
+  seedModelsIfEmpty(db)
+    .then((result) => {
+      if (result === "seeded") console.log("Models seeded from defaults");
+    })
+    .catch((e) => console.error("Models seed failed", e));
 }
 
 export default {

@@ -13,10 +13,12 @@ import { Faq } from "../components/faq";
 import { FinalCta } from "../components/final-cta";
 import { Footer } from "../components/footer";
 import type { Plan, PricingText } from "../lib/plans";
+import type { Model } from "../lib/models";
 
-export const HomePage: FC<{ plans: Plan[]; pricingText: PricingText }> = ({
+export const HomePage: FC<{ plans: Plan[]; pricingText: PricingText; models: Model[] }> = ({
   plans,
   pricingText,
+  models,
 }) => (
   <Layout title={`${content.brand} — ${content.tagline}`} description={content.hero.sub}>
     <Announcement />
@@ -25,7 +27,7 @@ export const HomePage: FC<{ plans: Plan[]; pricingText: PricingText }> = ({
       <Hero />
       <LogoStrip />
       <Features />
-      <Models />
+      <Models models={models} />
       <PricingCards plans={plans} subtitle={pricingText.subtitle} note={pricingText.note} />
       <Testimonials />
       <Faq />

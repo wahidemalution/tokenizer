@@ -10,6 +10,7 @@ import {
 import { createOrder, markPaid } from "../lib/orders";
 import { seedPlansIfEmpty } from "../lib/plans";
 import type { Plan } from "../lib/plans";
+import { seedModelsIfEmpty, createModel } from "../lib/models";
 import { CSRF_COOKIE, CSRF_FIELD } from "../lib/auth/csrf";
 import { Hono } from "hono";
 import { adminRoutes } from "./routes";
@@ -261,4 +262,133 @@ test("admin works under a custom ADMIN_PATH prefix", async () => {
     expect(loginResponse.status).toBe(302);
     expect(loginResponse.headers.get("set-cookie") || "").toContain(`Path=${prefix}`);
   });
+});
+
+test("models list shows seeded model", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  await seedModelsIfEmpty(getDb());
+  const { cookie } = await loginSession("admin", PASS);
+  const base = adminBase();
+  const res = await app.fetch(
+    new Request(`http://x${base}/models`, { headers: { cookie } })
+  );
+  expect(res.status).toBe(200);
+  expect(await res.text()).toContain("GPT 5.5");
+});
+
+test("create model via POST", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const { cookie } = await loginSession("admin", PASS);
+  const csrf = csrfFromCookieHeader(cookie);
+  const base = adminBase();
+  const res = await app.fetch(
+    new Request(`http://x${base}/models`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        name: "Test Model X",
+        provider: "TestProvider",
+        status: "available",
+        sort_order: "10",
+        [CSRF_FIELD]: csrf,
+      }),
+      redirect: "manual",
+    })
+  );
+  expect(res.status).toBe(302);
+  expect(res.headers.get("location") || "").toContain("ok=created");
+  const listRes = await app.fetch(
+    new Request(`http://x${base}/models`, { headers: { cookie } })
+  );
+  expect(await listRes.text()).toContain("Test Model X");
+});
+
+test("update model status via POST", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const m = await createModel(getDb(), {
+    name: "Updatable",
+    provider: "P",
+    status: "available",
+    isVisible: true,
+    sortOrder: 1,
+  });
+  const { cookie } = await loginSession("admin", PASS);
+  const csrf = csrfFromCookieHeader(cookie);
+  const base = adminBase();
+  const res = await app.fetch(
+    new Request(`http://x${base}/models/${m.id}`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        name: "Updatable",
+        provider: "P",
+        status: "maintenance",
+        sort_order: "1",
+        [CSRF_FIELD]: csrf,
+      }),
+      redirect: "manual",
+    })
+  );
+  expect(res.status).toBe(302);
+  expect(res.headers.get("location") || "").toContain("ok=updated");
+  const listRes = await app.fetch(
+    new Request(`http://x${base}/models`, { headers: { cookie } })
+  );
+  expect(await listRes.text()).toContain("Maintenance");
+});
+
+test("delete model via POST", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const m = await createModel(getDb(), {
+    name: "Deletable",
+    provider: "P",
+    status: "available",
+    isVisible: true,
+    sortOrder: 1,
+  });
+  const { cookie } = await loginSession("admin", PASS);
+  const csrf = csrfFromCookieHeader(cookie);
+  const base = adminBase();
+  const res = await app.fetch(
+    new Request(`http://x${base}/models/${m.id}/delete`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ [CSRF_FIELD]: csrf }),
+      redirect: "manual",
+    })
+  );
+  expect(res.status).toBe(302);
+  expect(res.headers.get("location") || "").toContain("ok=deleted");
+  const listRes = await app.fetch(
+    new Request(`http://x${base}/models`, { headers: { cookie } })
+  );
+  expect(await listRes.text()).not.toContain("Deletable");
+});
+
+test("invalid status rejected on create", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const { cookie } = await loginSession("admin", PASS);
+  const csrf = csrfFromCookieHeader(cookie);
+  const base = adminBase();
+  const res = await app.fetch(
+    new Request(`http://x${base}/models`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        name: "BadStatus",
+        provider: "P",
+        status: "bogus",
+        sort_order: "1",
+        [CSRF_FIELD]: csrf,
+      }),
+      redirect: "manual",
+    })
+  );
+  expect(res.status).toBe(302);
+  expect(res.headers.get("location") || "").toContain("error=invalid-status");
 });

@@ -40,6 +40,17 @@ const NAV = [
     ),
   },
   {
+    href: adminUrl("/models"),
+    label: "Models",
+    match: (p: string) => p.startsWith(adminUrl("/models")),
+    icon: (
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+        <path d="M12 2.5 3.5 7v10L12 21.5 20.5 17V7L12 2.5Z" stroke-linejoin="round" />
+        <path d="m3.5 7 8.5 4.5L20.5 7M12 21.5V11.5" stroke-linejoin="round" />
+      </svg>
+    ),
+  },
+  {
     href: adminUrl("/users"),
     label: "Users",
     match: (p: string) => p.startsWith(adminUrl("/users")),

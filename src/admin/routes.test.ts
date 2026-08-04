@@ -8,6 +8,7 @@ import {
   truncateAll,
 } from "../db/test-utils";
 import { createOrder, markPaid } from "../lib/orders";
+import { seedPlansIfEmpty } from "../lib/plans";
 import type { Plan } from "../lib/plans";
 import { CSRF_COOKIE, CSRF_FIELD } from "../lib/auth/csrf";
 import { Hono } from "hono";
@@ -20,9 +21,16 @@ const plan: Plan = {
   id: "10m",
   name: "10M",
   tokens: "10M token",
+  basePriceIdr: 40000,
+  discountPercent: 0,
+  description: null,
+  duration: "7 hari",
+  isPopular: false,
+  isLimited: false,
+  isActive: true,
+  sortOrder: 3,
   amountIdr: 40000,
   priceLabel: "Rp40.000",
-  duration: "7 hari",
 };
 
 const PASS = "correct-horse-battery";
@@ -39,6 +47,7 @@ beforeAll(async () => {
   if (!url) return;
   await migrateTestDb(url);
   await _resetDbForTests(url);
+  await seedPlansIfEmpty(getDb());
 });
 
 beforeEach(async () => {

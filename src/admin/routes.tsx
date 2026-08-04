@@ -46,12 +46,21 @@ import {
 } from "../lib/orders";
 import { listPaymentEventsForOrder } from "../lib/payment-events";
 import { recheckOrderPayment } from "../lib/admin-order-actions";
+import {
+  getPlanFromDb,
+  listPlansFromDb,
+  getPricingText,
+  updatePlan,
+  updatePricingText,
+} from "../lib/plans";
 import { AdminLayout } from "./layout";
 import { LoginPage } from "./pages/login";
 import { DashboardPage } from "./pages/dashboard";
 import { OrdersPage } from "./pages/orders";
 import { OrderDetailPage } from "./pages/order-detail";
 import { UsersPage } from "./pages/users";
+import { PlansPage } from "./pages/plans";
+import { PlanEditPage } from "./pages/plan-edit";
 
 const admin = new Hono<AdminEnv>();
 
@@ -206,6 +215,108 @@ admin.post("/orders/:id/recheck", requireAdmin, async (c) => {
       ? "ok=recheck"
       : `error=recheck`;
   return c.redirect(`${adminUrl(`/orders/${id}`)}?${q}`);
+});
+
+admin.get("/plans", requireAdmin, async (c) => {
+  const db = getDb();
+  const [planRows, pricingText] = await Promise.all([
+    listPlansFromDb(db, { includeInactive: true }),
+    getPricingText(db),
+  ]);
+  const html = renderToString(
+    <AdminLayout title="Paket" user={c.get("adminUser")} path={adminUrl("/plans")} csrfToken={c.get("csrfToken")}>
+      <PlansPage
+        plans={planRows}
+        pricingText={pricingText}
+        error={c.req.query("error")}
+        ok={c.req.query("ok")}
+        csrfToken={c.get("csrfToken")}
+      />
+    </AdminLayout>
+  );
+  return c.html(`<!doctype html>${html}`);
+});
+
+admin.get("/plans/:id/edit", requireAdmin, async (c) => {
+  const id = c.req.param("id");
+  const plan = await getPlanFromDb(getDb(), id);
+  if (!plan) return c.notFound();
+  const html = renderToString(
+    <AdminLayout
+      title={`Edit ${plan.name}`}
+      user={c.get("adminUser")}
+      path={adminUrl("/plans")}
+      csrfToken={c.get("csrfToken")}
+    >
+      <PlanEditPage
+        plan={plan}
+        error={c.req.query("error")}
+        ok={c.req.query("ok")}
+        csrfToken={c.get("csrfToken")}
+      />
+    </AdminLayout>
+  );
+  return c.html(`<!doctype html>${html}`);
+});
+
+admin.post("/plans/:id", requireAdmin, async (c) => {
+  const parsed = await parseAdminForm(c);
+  if (!parsed.ok) return parsed.response;
+  if (!rateLimitOk(clientIp(c), { windowMs: 60_000, max: 30, bucket: "admin-mutate" })) {
+    return c.text("Too many requests", 429);
+  }
+  const id = c.req.param("id");
+  const body = parsed.body;
+  const name = String(body.name ?? "").trim();
+  const tokens = String(body.tokens ?? "").trim();
+  const duration = String(body.duration ?? "").trim();
+  const basePriceIdr = Number(body.base_price_idr ?? 0);
+  const discountPercent = Number(body.discount_percent ?? 0);
+  const description = String(body.description ?? "").trim() || null;
+  const isPopular = body.is_popular === "1" || body.is_popular === "on";
+  const isLimited = body.is_limited === "1" || body.is_limited === "on";
+  const isActive = body.is_active === "1" || body.is_active === "on";
+  const sortOrder = Number(body.sort_order ?? 0);
+
+  if (!name) return c.redirect(`${adminUrl(`/plans/${id}/edit`)}?error=name-empty`);
+  if (!tokens) return c.redirect(`${adminUrl(`/plans/${id}/edit`)}?error=tokens-empty`);
+  if (!duration) return c.redirect(`${adminUrl(`/plans/${id}/edit`)}?error=duration-empty`);
+  if (!Number.isFinite(basePriceIdr) || basePriceIdr < 0) {
+    return c.redirect(`${adminUrl(`/plans/${id}/edit`)}?error=base-negative`);
+  }
+  if (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100) {
+    return c.redirect(`${adminUrl(`/plans/${id}/edit`)}?error=discount-range`);
+  }
+
+  const updated = await updatePlan(getDb(), id, {
+    name,
+    tokens,
+    basePriceIdr,
+    discountPercent,
+    description,
+    duration,
+    isPopular,
+    isLimited,
+    isActive,
+    sortOrder: Number.isFinite(sortOrder) ? Math.round(sortOrder) : 0,
+  });
+  if (!updated) return c.notFound();
+  return c.redirect(`${adminUrl(`/plans/${id}/edit`)}?ok=updated`);
+});
+
+admin.post("/pricing-text", requireAdmin, async (c) => {
+  const parsed = await parseAdminForm(c);
+  if (!parsed.ok) return parsed.response;
+  if (!rateLimitOk(clientIp(c), { windowMs: 60_000, max: 30, bucket: "admin-mutate" })) {
+    return c.text("Too many requests", 429);
+  }
+  const subtitle = String(parsed.body.subtitle ?? "").trim();
+  const note = String(parsed.body.note ?? "").trim();
+  if (!subtitle || !note) {
+    return c.redirect(`${adminUrl("/plans")}?error=text-empty`);
+  }
+  await updatePricingText(getDb(), { subtitle, note });
+  return c.redirect(`${adminUrl("/plans")}?ok=text-updated`);
 });
 
 admin.get("/users", requireAdmin, async (c) => {

@@ -29,6 +29,17 @@ const NAV = [
     ),
   },
   {
+    href: adminUrl("/plans"),
+    label: "Paket",
+    match: (p: string) => p.startsWith(adminUrl("/plans")),
+    icon: (
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+        <rect x="3.5" y="6.5" width="17" height="12" rx="2" />
+        <path d="M3.5 10.5h17" />
+      </svg>
+    ),
+  },
+  {
     href: adminUrl("/users"),
     label: "Users",
     match: (p: string) => p.startsWith(adminUrl("/users")),

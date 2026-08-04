@@ -84,3 +84,29 @@ export const adminSessions = pgTable("admin_sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
 });
+
+export const plans = pgTable(
+  "plans",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    tokens: text("tokens").notNull(),
+    basePriceIdr: integer("base_price_idr").notNull(),
+    discountPercent: integer("discount_percent").notNull().default(0),
+    description: text("description"),
+    duration: text("duration").notNull(),
+    isPopular: boolean("is_popular").notNull().default(false),
+    isLimited: boolean("is_limited").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("plans_active_sort_idx").on(t.isActive, t.sortOrder)]
+);
+
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+});

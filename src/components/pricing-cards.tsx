@@ -2,9 +2,13 @@ import type { FC } from "hono/jsx";
 import { content } from "../content/home";
 import { SectionLabel } from "./section-label";
 import { IconCheck } from "./icons";
-import { PLANS, formatIdr, pricePerMillion } from "../lib/plans";
+import { formatIdr, pricePerMillion, type Plan } from "../lib/plans";
 
-export const PricingCards: FC = () => {
+export const PricingCards: FC<{
+  plans: Plan[];
+  subtitle?: string;
+  note?: string;
+}> = ({ plans, subtitle, note }) => {
   const p = content.pricing;
   return (
     <section id="harga" class="scroll-mt-20 border-b border-border">
@@ -12,14 +16,15 @@ export const PricingCards: FC = () => {
         <div data-reveal>
           <SectionLabel>{p.label}</SectionLabel>
           <h2 class="mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{p.title}</h2>
-          <p class="mt-2 text-muted">{p.subtitle}</p>
+          <p class="mt-2 text-muted">{subtitle ?? p.subtitle}</p>
         </div>
         <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PLANS.map((plan) => {
-            const isPopular = plan.id === p.badges.popular.planId;
+          {plans.map((plan) => {
+            const isPopular = plan.isPopular;
             const isBest = plan.id === p.badges.bestValue.planId;
-            const discountPercent = plan.id === "1m" && plan.amountIdr !== 10000 ? Math.round(((10000 - plan.amountIdr) / 10000) * 100) : null;
+            const discountPercent = plan.discountPercent > 0 ? plan.discountPercent : null;
             const hasDiscount = discountPercent !== null;
+            const showLimited = plan.isLimited;
             const highlight = isPopular || hasDiscount;
             return (
               <div
@@ -33,14 +38,18 @@ export const PricingCards: FC = () => {
                     {p.badges.popular.label}
                   </span>
                 ) : null}
-                {hasDiscount ? (
+                {hasDiscount || showLimited ? (
                   <div class="absolute -top-2.5 left-4 flex items-center gap-1.5">
-                    <span class="rounded bg-brand px-2 py-0.5 text-xs font-medium text-black">
-                      Diskon {discountPercent}%
-                    </span>
-                    <span class="rounded border border-brand/40 bg-background px-2 py-0.5 text-xs font-medium text-brand">
-                      Terbatas
-                    </span>
+                    {hasDiscount ? (
+                      <span class="rounded bg-brand px-2 py-0.5 text-xs font-medium text-black">
+                        Diskon {discountPercent}%
+                      </span>
+                    ) : null}
+                    {showLimited ? (
+                      <span class="rounded border border-brand/40 bg-background px-2 py-0.5 text-xs font-medium text-brand">
+                        Terbatas
+                      </span>
+                    ) : null}
                   </div>
                 ) : null}
                 <div class="flex items-center justify-between">
@@ -52,9 +61,12 @@ export const PricingCards: FC = () => {
                   ) : null}
                 </div>
                 <p class="mt-0.5 text-sm text-muted">{plan.tokens}</p>
+                {plan.description ? (
+                  <p class="mt-1 text-xs text-faint">{plan.description}</p>
+                ) : null}
                 <div class="mt-4 flex items-end gap-2">
-                  {plan.id === "1m" && plan.amountIdr !== 10000 ? (
-                    <span class="text-sm text-faint line-through">Rp10.000</span>
+                  {hasDiscount ? (
+                    <span class="text-sm text-faint line-through">{formatIdr(plan.basePriceIdr)}</span>
                   ) : null}
                   <p class="text-2xl font-semibold tracking-tight text-foreground">{plan.priceLabel}</p>
                 </div>
@@ -82,7 +94,7 @@ export const PricingCards: FC = () => {
             );
           })}
         </div>
-        <p class="mt-4 text-xs text-faint">{p.note}</p>
+        <p class="mt-4 text-xs text-faint">{note ?? p.note}</p>
       </div>
     </section>
   );

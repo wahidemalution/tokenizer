@@ -9,7 +9,7 @@ import {
   markPaid,
 } from "./lib/orders";
 import { listPaymentEventsForOrder } from "./lib/payment-events";
-import { PLANS } from "./lib/plans";
+import { PLANS, seedPlansIfEmpty } from "./lib/plans";
 import { withEnv } from "./lib/test-helpers";
 import {
   getTestDatabaseUrl,
@@ -94,6 +94,7 @@ beforeAll(async () => {
   if (!url) return;
   await migrateTestDb(url);
   await _resetDbForTests(url);
+  await seedPlansIfEmpty(getDb());
 });
 
 beforeEach(async () => {

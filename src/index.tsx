@@ -9,7 +9,7 @@ import { OrderSuccessPage } from "./pages/order-success";
 import { TermsPage } from "./pages/terms";
 import { PrivacyPage } from "./pages/privacy";
 import { RefundPage } from "./pages/refund";
-import { getPlan } from "./lib/plans";
+import { listPlansFromDb, getPlanFromDb, getPricingText, seedPlansIfEmpty } from "./lib/plans";
 import { getDb } from "./lib/db";
 import { adminBase } from "./lib/admin-url";
 import {
@@ -27,7 +27,7 @@ import { insertPaymentEvent } from "./lib/payment-events";
 import { verifyTurnstile } from "./lib/turnstile";
 import { createPayment, checkPayment } from "./lib/bayar";
 import { sendPaidNotification } from "./lib/discord";
-import { env, isCheckoutConfigured } from "./lib/env";
+import { env, isCheckoutConfigured, validateRuntimeEnv } from "./lib/env";
 import { isValidEmail, normalizeEmail, normalizePhone } from "./lib/validate";
 import { rateLimitOk } from "./lib/rate-limit";
 import { seedAdminIfEmpty } from "./db/seed-admin";
@@ -61,20 +61,30 @@ app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 app.use("/app.css", serveStatic({ path: "./public/app.css" }));
 app.use("/client.js", serveStatic({ path: "./public/client.js" }));
 
-app.get("/", (c) => {
-  const html = renderToString(<HomePage />);
+app.get("/", async (c) => {
+  const db = getDb();
+  const [plans, pricingText] = await Promise.all([
+    listPlansFromDb(db),
+    getPricingText(db),
+  ]);
+  const html = renderToString(<HomePage plans={plans} pricingText={pricingText} />);
   return c.html(`<!doctype html>${html}`);
 });
 
-app.get("/pricing", (c) => {
-  const html = renderToString(<PricingPage />);
+app.get("/pricing", async (c) => {
+  const db = getDb();
+  const [plans, pricingText] = await Promise.all([
+    listPlansFromDb(db),
+    getPricingText(db),
+  ]);
+  const html = renderToString(<PricingPage plans={plans} pricingText={pricingText} />);
   return c.html(`<!doctype html>${html}`);
 });
 
-app.get("/checkout", (c) => {
+app.get("/checkout", async (c) => {
   const planId = c.req.query("plan") ?? "";
-  const plan = getPlan(planId);
-  if (!plan) return c.redirect("/pricing");
+  const plan = await getPlanFromDb(getDb(), planId);
+  if (!plan || !plan.isActive) return c.redirect("/pricing");
   const cfg = isCheckoutConfigured();
   const errors: CheckoutError[] = cfg.ok
     ? []
@@ -98,8 +108,8 @@ app.post("/checkout", async (c) => {
 
   const body = await c.req.parseBody();
   const planId = String(body.plan ?? "");
-  const plan = getPlan(planId);
-  if (!plan) return c.redirect("/pricing");
+  const plan = await getPlanFromDb(getDb(), planId);
+  if (!plan || !plan.isActive) return c.redirect("/pricing");
 
   const email = normalizeEmail(String(body.email ?? ""));
   const discordId = String(body.discordId ?? "").trim();
@@ -237,6 +247,7 @@ app.post("/api/webhooks/bayar", async (c) => {
   const db = getDb();
   let raw: unknown = null;
   let payload: Record<string, unknown> | null = null;
+  const ack = () => c.json({ success: true, message: "accepted" }, 200);
 
   try {
     const text = await c.req.text();
@@ -246,38 +257,16 @@ app.post("/api/webhooks/bayar", async (c) => {
     payload = JSON.parse(text) as Record<string, unknown>;
     raw = truncateWebhookRaw(payload);
   } catch {
-    raw = { parseError: true };
-    await insertPaymentEvent(db, {
-      source: "webhook",
-      rawBody: raw,
-      processedOk: false,
-      message: "ignored",
-    });
-    return c.json({ success: true, message: "ignored" }, 200);
+    return ack();
   }
 
   const invoiceId = payload?.invoice_id ? String(payload.invoice_id) : "";
-  if (!invoiceId) {
-    await insertPaymentEvent(db, {
-      source: "webhook",
-      rawBody: raw,
-      processedOk: false,
-      message: "ignored",
-    });
-    return c.json({ success: true, message: "ignored" }, 200);
-  }
+  if (!invoiceId) return ack();
 
   let order = await getOrderByInvoice(db, invoiceId);
   if (!order) {
     console.warn("webhook: invoice not found", invoiceId);
-    await insertPaymentEvent(db, {
-      invoiceId,
-      source: "webhook",
-      rawBody: raw,
-      processedOk: false,
-      message: "order-not-found",
-    });
-    return c.json({ success: true, message: "ignored" }, 200);
+    return ack();
   }
 
   order = await expireIfDue(db, order);
@@ -291,7 +280,7 @@ app.post("/api/webhooks/bayar", async (c) => {
       processedOk: false,
       message: "expired",
     });
-    return c.json({ success: true, message: "expired" }, 200);
+    return ack();
   }
   if (order.status === "paid" && order.discordNotified) {
     await insertPaymentEvent(db, {
@@ -302,7 +291,7 @@ app.post("/api/webhooks/bayar", async (c) => {
       processedOk: true,
       message: "already-paid",
     });
-    return c.json({ success: true, message: "already-paid" }, 200);
+    return ack();
   }
 
   let verified;
@@ -319,7 +308,7 @@ app.post("/api/webhooks/bayar", async (c) => {
       processedOk: false,
       message: "verify-failed",
     });
-    return c.json({ success: true, message: "verify-failed" }, 200);
+    return ack();
   }
 
   if (!verified || verified.status !== "paid") {
@@ -332,7 +321,7 @@ app.post("/api/webhooks/bayar", async (c) => {
       processedOk: false,
       message: "not-paid",
     });
-    return c.json({ success: true, message: "not-paid" }, 202);
+    return ack();
   }
 
   if (!isPaidAmountAcceptable(order.amountIdr, verified.finalAmount)) {
@@ -350,7 +339,7 @@ app.post("/api/webhooks/bayar", async (c) => {
       processedOk: false,
       message: "amount-mismatch",
     });
-    return c.json({ success: true, message: "amount-mismatch" }, 200);
+    return ack();
   }
 
   const { order: paidOrder, transitioned } = await markPaid(
@@ -376,7 +365,7 @@ app.post("/api/webhooks/bayar", async (c) => {
     else console.error("webhook: discord failed", discord.error);
   }
 
-  return c.json({ success: true, message: "paid" }, 200);
+  return ack();
 });
 
 app.notFound((c) =>
@@ -394,7 +383,9 @@ const isTestRuntime =
   typeof (globalThis as { bunTest?: unknown }).bunTest !== "undefined";
 
 if (!isTestRuntime && import.meta.main) {
-  seedAdminIfEmpty(getDb())
+  validateRuntimeEnv();
+  const db = getDb();
+  seedAdminIfEmpty(db)
     .then((result) => {
       if (result === "seeded") console.log("Admin user seeded from env");
       if (result === "rejected") {
@@ -402,6 +393,11 @@ if (!isTestRuntime && import.meta.main) {
       }
     })
     .catch((e) => console.error("Admin seed failed", e));
+  seedPlansIfEmpty(db)
+    .then((result) => {
+      if (result === "seeded") console.log("Plans seeded from defaults");
+    })
+    .catch((e) => console.error("Plans seed failed", e));
 }
 
 export default {

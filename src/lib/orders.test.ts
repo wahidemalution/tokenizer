@@ -29,9 +29,16 @@ const plan: Plan = {
   id: "10m",
   name: "10M",
   tokens: "10M token",
+  basePriceIdr: 40000,
+  discountPercent: 0,
+  description: null,
+  duration: "7 hari",
+  isPopular: false,
+  isLimited: false,
+  isActive: true,
+  sortOrder: 3,
   amountIdr: 40000,
   priceLabel: "Rp40.000",
-  duration: "7 hari",
 };
 
 const url = getTestDatabaseUrl();

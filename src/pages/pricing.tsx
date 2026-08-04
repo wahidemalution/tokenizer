@@ -6,7 +6,7 @@ import { Footer } from "../components/footer";
 import { PricingCards } from "../components/pricing-cards";
 import { SectionLabel } from "../components/section-label";
 import { IconChevronDown } from "../components/icons";
-import { PLANS, formatIdr, pricePerMillion } from "../lib/plans";
+import { formatIdr, pricePerMillion, type Plan, type PricingText } from "../lib/plans";
 
 const PRICING_FAQ: { q: string; a: string }[] = [
   {
@@ -23,21 +23,26 @@ const PRICING_FAQ: { q: string; a: string }[] = [
   },
 ];
 
-export const PricingPage: FC = () => {
+export const PricingPage: FC<{ plans: Plan[]; pricingText: PricingText }> = ({
+  plans,
+  pricingText,
+}) => {
   const p = content.pricing;
+  const subtitle = pricingText.subtitle;
+  const note = pricingText.note;
   return (
-    <Layout title={`Harga — ${content.brand}`} description={p.subtitle}>
+    <Layout title={`Harga — ${content.brand}`} description={subtitle}>
       <Navbar />
       <main>
         <section class="border-b border-border">
           <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
             <SectionLabel>{p.label}</SectionLabel>
             <h1 class="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{p.title}</h1>
-            <p class="mt-2 max-w-xl text-muted">{p.subtitle}</p>
+            <p class="mt-2 max-w-xl text-muted">{subtitle}</p>
           </div>
         </section>
 
-        <PricingCards />
+        <PricingCards plans={plans} subtitle={subtitle} note={note} />
 
         <section class="border-b border-border">
           <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">
@@ -58,27 +63,32 @@ export const PricingPage: FC = () => {
                     <th scope="col" class="px-4 py-2.5 font-mono text-xs font-medium uppercase tracking-wider text-faint">Masa aktif</th>
                     <th scope="col" class="px-4 py-2.5" />
                   </tr>
-                  {PLANS.some((p) => p.id === "1m" && p.amountIdr !== 10000) ? (
+                  {plans.some((plan) => plan.discountPercent > 0) ? (
                     <tr class="bg-brand/5">
                       <td colSpan={6} class="px-4 py-2.5 text-xs font-semibold text-center text-brand">
-                        Promo Diskon Terbatas: Paket 1M turun jadi Rp3.500 (diskon 65%)
+                        Promo Diskon Terbatas — lihat detail di kartu paket
                       </td>
                     </tr>
                   ) : null}
                 </thead>
                 <tbody class="divide-y divide-border">
-                  {PLANS.map((plan) => (
+                  {plans.map((plan) => (
                     <tr class="transition-colors hover:bg-panel/60">
                       <td class="px-4 py-3 font-medium text-foreground">
                         {plan.name}
-                        {plan.id === p.badges.popular.planId ? (
+                        {plan.isPopular ? (
                           <span class="ml-2 rounded bg-brand px-1.5 py-0.5 text-xs font-medium text-black">
                             {p.badges.popular.label}
                           </span>
                         ) : null}
                       </td>
                       <td class="px-4 py-3 text-muted">{plan.tokens}</td>
-                      <td class="px-4 py-3 text-foreground">{plan.priceLabel}</td>
+                      <td class="px-4 py-3 text-foreground">
+                        {plan.discountPercent > 0 ? (
+                          <span class="text-faint line-through mr-2">{formatIdr(plan.basePriceIdr)}</span>
+                        ) : null}
+                        {plan.priceLabel}
+                      </td>
                       <td class="px-4 py-3 font-mono text-[13px] text-muted">
                         {formatIdr(pricePerMillion(plan))}
                       </td>
@@ -96,7 +106,7 @@ export const PricingPage: FC = () => {
                 </tbody>
               </table>
             </div>
-            <p class="mt-3 text-xs text-faint">{p.note}</p>
+            <p class="mt-3 text-xs text-faint">{note}</p>
           </div>
         </section>
 

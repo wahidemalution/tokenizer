@@ -103,3 +103,55 @@ test("recheck marks paid when bayar says paid", async () => {
     }
   );
 });
+
+test("recheck on paid order with failed discord notification retries discord", async () => {
+  if (skip()) return;
+  await createOrder(db, { id: "ord-dc", plan, email: "a@b.co" });
+  await setInvoice(db, "ord-dc", "INV-DC", "https://pay.test/x");
+
+  let discordCalls = 0;
+  const prev = globalThis.fetch;
+  globalThis.fetch = (async (input: any) => {
+    const u = typeof input === "string" ? input : input?.url ?? "";
+    if (u.includes("check-payment")) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          status: "paid",
+          final_amount: 40000,
+          paid_at: new Date().toISOString(),
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+    if (u.includes("discord.test")) {
+      discordCalls++;
+      // First call fails, subsequent calls succeed
+      return new Response("", { status: discordCalls === 1 ? 500 : 204 });
+    }
+    return new Response("", { status: 404 });
+  }) as typeof fetch;
+
+  await withEnv(
+    { BAYAR_GG_API_KEY: "k", DISCORD_WEBHOOK_URL: "https://discord.test/hook" },
+    async () => {
+      // First recheck: marks paid, discord fails (500)
+      const first = await recheckOrderPayment(db, "ord-dc", "admin");
+      expect(first.message).toBe("paid");
+      expect(discordCalls).toBe(1);
+      expect(first.order!.status).toBe("paid");
+      expect((await import("./orders")).getOrderById);
+      const { getOrderById } = await import("./orders");
+      let order = await getOrderById(db, "ord-dc");
+      expect(order!.discordNotified).toBe(false);
+
+      // Second recheck: order already paid but NOT notified — must retry discord
+      const second = await recheckOrderPayment(db, "ord-dc", "admin");
+      expect(second.message).toBe("already-paid");
+      expect(discordCalls).toBe(2);
+      order = await getOrderById(db, "ord-dc");
+      expect(order!.discordNotified).toBe(true);
+    }
+  );
+  globalThis.fetch = prev;
+});

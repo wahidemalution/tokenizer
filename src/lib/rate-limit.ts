@@ -1,4 +1,5 @@
 const hits = new Map<string, number[]>();
+const MAX_BUCKETS = 10_000;
 
 export function rateLimitOk(
   ip: string,
@@ -12,6 +13,14 @@ export function rateLimitOk(
   if (arr.length >= maxRequests) {
     hits.set(key, arr);
     return false;
+  }
+  // Opportunistic cleanup: when at capacity, evict expired buckets only.
+  // Never evict an active bucket — otherwise an attacker flooding unrelated
+  // keys could flush a blocked rate-limit bucket and reset its counter.
+  if (!hits.has(key) && hits.size >= MAX_BUCKETS) {
+    for (const [k, ts] of hits) {
+      if (ts.every((t) => now - t >= windowMs)) hits.delete(k);
+    }
   }
   arr.push(now);
   hits.set(key, arr);

@@ -20,9 +20,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      # Prefer reverse proxy in production; bind loopback if only local access needed:
-      # - "127.0.0.1:${APP_PORT:-3000}:3000"
-      - "${APP_PORT:-3000}:3000"
+      # Loopback only — reverse proxy (Caddy/Nginx) is the ONLY public entrance.
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     environment:
       PORT: "3000"
       NODE_ENV: production
@@ -40,6 +39,7 @@ services:
       TURNSTILE_BYPASS: ${TURNSTILE_BYPASS:-}
       # HMAC for /order/success?order=&t= — set a long random value in production
       ORDER_VIEW_SECRET: ${ORDER_VIEW_SECRET:-}
+      TRUST_PROXY: ${TRUST_PROXY:-}
       # No weak defaults — empty means seed is skipped / refused (same as main compose)
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}

@@ -104,7 +104,10 @@ export const AdminLayout: FC<{
   csrfToken?: string;
 }> = ({ title, user, children, flash, error, path = adminBase(), csrfToken }) => {
   return (
-    <Layout title={`${title} · Admin TOKENIZER`}>
+    <Layout
+      title={`${title} · Admin TOKENIZER`}
+      headExtra={<script src="/admin.js" defer></script>}
+    >
       <div class="min-h-screen bg-background text-foreground">
         {user ? (
           <div class="flex min-h-screen">

@@ -394,3 +394,37 @@ test("invalid status rejected on create", async () => {
   expect(res.status).toBe(302);
   expect(res.headers.get("location") || "").toContain("error=invalid-status");
 });
+
+// --- CSP compliance: admin pages must not use inline scripts ---
+// Admin CSP is `script-src 'self'` (no nonce/hash), so any inline <script>
+// body would be silently blocked by the browser. All JS must be external.
+
+test("plan edit page has no inline script (CSP script-src 'self')", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  const { cookie } = await loginSession("admin", PASS);
+  const base = adminBase();
+  const res = await app.fetch(
+    new Request(`http://x${base}/plans/10m/edit`, { headers: { cookie } })
+  );
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  // No <script> with a body (inline) — only <script src=...></script> allowed
+  expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>[^<]/);
+  expect(html).toContain('src="/admin.js"');
+});
+
+test("models page has no inline script (CSP script-src 'self')", async () => {
+  if (skip()) return;
+  await createAdminUser(getDb(), { username: "admin", password: PASS });
+  await seedModelsIfEmpty(getDb());
+  const { cookie } = await loginSession("admin", PASS);
+  const base = adminBase();
+  const res = await app.fetch(
+    new Request(`http://x${base}/models`, { headers: { cookie } })
+  );
+  expect(res.status).toBe(200);
+  const html = await res.text();
+  expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>[^<]/);
+  expect(html).toContain('src="/admin.js"');
+});

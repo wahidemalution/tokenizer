@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { env, isCheckoutConfigured } from "./env";
+import { env, isCheckoutConfigured, validateRuntimeEnv } from "./env";
 import { withEnv } from "./test-helpers";
 
 test("env.adminPath defaults to /admin", async () => {
@@ -82,6 +82,105 @@ test("isCheckoutConfigured ok with TURNSTILE_BYPASS without turnstile keys", asy
     () => {
       expect(isCheckoutConfigured().ok).toBe(true);
       expect(isCheckoutConfigured().missing).toEqual([]);
+    }
+  );
+});
+
+test("validateRuntimeEnv requires ORDER_VIEW_SECRET", async () => {
+  await withEnv({ ORDER_VIEW_SECRET: undefined }, () => {
+    expect(() => validateRuntimeEnv()).toThrow("ORDER_VIEW_SECRET is required");
+  });
+});
+
+test("validateRuntimeEnv accepts a configured ORDER_VIEW_SECRET", async () => {
+  await withEnv({ ORDER_VIEW_SECRET: "runtime-secret-1234", NODE_ENV: "test" }, () => {
+    expect(validateRuntimeEnv()).toEqual([]);
+  });
+});
+
+test("validateRuntimeEnv rejects placeholder ORDER_VIEW_SECRET from .env.example", async () => {
+  await withEnv({ ORDER_VIEW_SECRET: "replace-with-long-random-secret" }, () => {
+    expect(() => validateRuntimeEnv()).toThrow("ORDER_VIEW_SECRET");
+  });
+});
+
+test("validateRuntimeEnv rejects short ORDER_VIEW_SECRET", async () => {
+  await withEnv({ ORDER_VIEW_SECRET: "short" }, () => {
+    expect(() => validateRuntimeEnv()).toThrow("ORDER_VIEW_SECRET");
+  });
+});
+
+test("validateRuntimeEnv rejects whitespace-only ORDER_VIEW_SECRET", async () => {
+  await withEnv({ ORDER_VIEW_SECRET: "   " }, () => {
+    expect(() => validateRuntimeEnv()).toThrow("ORDER_VIEW_SECRET");
+  });
+});
+
+test("validateRuntimeEnv rejects HTTP public URL in production", async () => {
+  await withEnv(
+    {
+      NODE_ENV: "production",
+      PUBLIC_BASE_URL: "http://tokenizer.example",
+      ORDER_VIEW_SECRET: "runtime-secret-1234",
+    },
+    () => {
+      expect(() => validateRuntimeEnv()).toThrow("PUBLIC_BASE_URL must use HTTPS in production");
+    }
+  );
+});
+
+test("validateRuntimeEnv accepts HTTPS public URL in production", async () => {
+  await withEnv(
+    {
+      NODE_ENV: "production",
+      PUBLIC_BASE_URL: "https://tokenizer.example",
+      ORDER_VIEW_SECRET: "runtime-secret-1234",
+      TRUST_PROXY: "1",
+    },
+    () => {
+      expect(validateRuntimeEnv()).toEqual([]);
+    }
+  );
+});
+
+test("validateRuntimeEnv allows localhost http origin in production (dev compose)", async () => {
+  await withEnv(
+    {
+      NODE_ENV: "production",
+      PUBLIC_BASE_URL: "http://localhost:3000",
+      ORDER_VIEW_SECRET: "runtime-secret-1234",
+    },
+    () => {
+      expect(validateRuntimeEnv()).toEqual([]);
+    }
+  );
+});
+
+test("validateRuntimeEnv warns when production HTTPS without TRUST_PROXY", async () => {
+  await withEnv(
+    {
+      NODE_ENV: "production",
+      PUBLIC_BASE_URL: "https://tokenizer.example",
+      ORDER_VIEW_SECRET: "runtime-secret-1234",
+      TRUST_PROXY: undefined,
+    },
+    () => {
+      const warnings = validateRuntimeEnv();
+      expect(warnings.some((w) => w.includes("TRUST_PROXY"))).toBe(true);
+    }
+  );
+});
+
+test("validateRuntimeEnv no TRUST_PROXY warning when TRUST_PROXY=1", async () => {
+  await withEnv(
+    {
+      NODE_ENV: "production",
+      PUBLIC_BASE_URL: "https://tokenizer.example",
+      ORDER_VIEW_SECRET: "runtime-secret-1234",
+      TRUST_PROXY: "1",
+    },
+    () => {
+      expect(validateRuntimeEnv()).toEqual([]);
     }
   );
 });

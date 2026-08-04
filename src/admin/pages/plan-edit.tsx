@@ -245,25 +245,6 @@ export const PlanEditPage: FC<{
           </Card>
         </div>
       </div>
-
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `(() => {
-  const base = document.getElementById("base_price_idr");
-  const disc = document.getElementById("discount_percent");
-  const out = document.getElementById("price-preview-value");
-  if (!base || !disc || !out) return;
-  const fmt = (n) => "Rp" + Math.round(n).toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g, ".");
-  const recompute = () => {
-    const b = Math.max(0, Number(base.value) || 0);
-    const d = Math.max(0, Math.min(100, Number(disc.value) || 0));
-    out.textContent = fmt(Math.round((b * (100 - d)) / 100));
-  };
-  base.addEventListener("input", recompute);
-  disc.addEventListener("input", recompute);
-})();`,
-        }}
-      />
     </div>
   );
 };

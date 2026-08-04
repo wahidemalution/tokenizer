@@ -89,11 +89,27 @@ export function validateRuntimeEnv(): string[] {
       "ORDER_VIEW_SECRET is required (min 16 chars, not a placeholder). Generate with: openssl rand -base64 48"
     );
   }
+  // Production HTTPS enforcement: skip for localhost dev origins so the
+  // default Compose stack (NODE_ENV=production + http://localhost:3000)
+  // still boots. Real deployments use a real hostname over HTTPS.
   const isProd = get("NODE_ENV") === "production";
   const isLocalhostOrigin =
     /^https?:\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(env.baseUrl);
   if (isProd && !env.isHttps && !isLocalhostOrigin) {
     throw new Error("PUBLIC_BASE_URL must use HTTPS in production");
   }
-  return [];
+  const warnings: string[] = [];
+  // HTTPS in production implies a reverse proxy (nginx/Caddy/Cloudflare)
+  // terminating TLS in front of the app. Without TRUST_PROXY=1 every request
+  // shares one rate-limit bucket ("direct"): 10 login attempts / 15 min
+  // GLOBALLY — trivially DoS-able, and checkout limits are shared by all
+  // visitors. Warn loudly so deploys don't ship misconfigured.
+  if (isProd && env.isHttps && !env.trustProxy) {
+    warnings.push(
+      "TRUST_PROXY is not set but PUBLIC_BASE_URL is HTTPS (reverse proxy assumed). " +
+        "Rate limiting will treat ALL visitors as one client. Set TRUST_PROXY=1 " +
+        "when the app runs behind a trusted reverse proxy/CDN."
+    );
+  }
+  return warnings;
 }

@@ -5,6 +5,7 @@ docs/superpowers/
 node_modules/
 public/app.css
 public/client.js
+public/admin.js
 data/
 output/
 .env

@@ -12,4 +12,5 @@ dist
 docs
 public/app.css
 public/client.js
+public/admin.js
 README.md

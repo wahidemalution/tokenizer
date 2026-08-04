@@ -43,6 +43,12 @@ export async function recheckOrderPayment(
   }
 
   if (order.status === "paid") {
+    // Payment is settled, but if the Discord notification previously failed
+    // (e.g. webhook down), retry it here so admin recheck can recover it.
+    if (!order.discordNotified) {
+      const discord = await sendPaidNotification(order);
+      if (discord.ok) await setDiscordNotified(db, order.id);
+    }
     await insertPaymentEvent(db, {
       orderId: order.id,
       invoiceId: order.invoiceId,

@@ -2,13 +2,9 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { env } from "./env";
 
 function viewSecret(): string {
-  const dedicated = env.orderViewSecret;
-  if (dedicated) return dedicated;
-  const bayar = env.bayarApiKey;
-  if (bayar) return `bayar:${bayar}`;
-  const db = env.databaseUrl;
-  if (db) return `db:${db}`;
-  return "dev-only-order-view-secret";
+  const secret = env.orderViewSecret;
+  if (!secret) throw new Error("ORDER_VIEW_SECRET is required");
+  return secret;
 }
 
 export function createOrderViewToken(orderId: string): string {

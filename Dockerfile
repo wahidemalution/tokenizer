@@ -28,7 +28,10 @@ COPY drizzle ./drizzle
 COPY drizzle.config.ts ./
 COPY docker/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chown -R bun:bun /app
+
+# Run as non-root (user `bun` is provided by the oven/bun base image)
+USER bun
 
 EXPOSE 3000
 ENTRYPOINT ["/entrypoint.sh"]

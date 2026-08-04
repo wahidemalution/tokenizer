@@ -62,6 +62,7 @@ app.route(adminBase(), adminRoutes);
 app.use("/favicon.svg", serveStatic({ path: "./public/favicon.svg" }));
 app.use("/app.css", serveStatic({ path: "./public/app.css" }));
 app.use("/client.js", serveStatic({ path: "./public/client.js" }));
+app.use("/admin.js", serveStatic({ path: "./public/admin.js" }));
 
 app.get("/", async (c) => {
   const db = getDb();
@@ -388,7 +389,8 @@ const isTestRuntime =
   typeof (globalThis as { bunTest?: unknown }).bunTest !== "undefined";
 
 if (!isTestRuntime && import.meta.main) {
-  validateRuntimeEnv();
+  const envWarnings = validateRuntimeEnv();
+  for (const w of envWarnings) console.warn(`⚠️  ${w}`);
   const db = getDb();
   seedAdminIfEmpty(db)
     .then((result) => {

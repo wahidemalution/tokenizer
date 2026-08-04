@@ -122,12 +122,6 @@ export const ModelsPage: FC<{
           </div>
         )}
       </Card>
-
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `document.querySelectorAll('form[action*="/delete"]').forEach(f=>{f.addEventListener('submit',e=>{const m=f.querySelector('[data-confirm]');if(m&&!confirm(m.getAttribute('data-confirm'))){e.preventDefault();}});});`,
-        }}
-      />
     </div>
   );
 };

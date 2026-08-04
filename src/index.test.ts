@@ -9,6 +9,7 @@ import {
   markPaid,
 } from "./lib/orders";
 import { listPaymentEventsForOrder } from "./lib/payment-events";
+import { paymentEvents } from "./db/schema";
 import { PLANS, seedPlansIfEmpty } from "./lib/plans";
 import { withEnv } from "./lib/test-helpers";
 import {
@@ -84,6 +85,21 @@ async function postWebhook(invoiceId: string) {
   );
 }
 
+async function postWebhookRaw(body: string) {
+  return app.fetch(
+    new Request("https://x.test/api/webhooks/bayar", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+    })
+  );
+}
+
+async function countAllPaymentEvents(): Promise<number> {
+  const rows = await getDb().select().from(paymentEvents);
+  return rows.length;
+}
+
 const envVars = {
   BAYAR_GG_API_KEY: "k",
   DISCORD_WEBHOOK_URL: DISCORD_URL,
@@ -134,15 +150,15 @@ test("smoke: GET /checkout with valid plan renders form", async () => {
   expect(html).toContain("Ringkasan paket");
 });
 
-test("spoofed webhook (checkPayment says not-paid) -> 202 not-paid", async () => {
+test("spoofed webhook (checkPayment says not-paid) -> accepted, order stays pending", async () => {
   if (skip()) return;
   await seedOrder("ord-spoof", "INV-SPOOF");
   setupFetch({ bayarStatus: "pending" });
   await withEnv(envVars, async () => {
     const res = await postWebhook("INV-SPOOF");
-    expect(res.status).toBe(202);
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.message).toBe("not-paid");
+    expect(body.message).toBe("accepted");
     expect(discordCallCount).toBe(0);
     const order = await getOrderById(getDb(), "ord-spoof");
     expect(order!.status).toBe("pending");
@@ -163,7 +179,7 @@ test("verified paid webhook -> 200 paid, order paid + discordNotified + event", 
     const res = await postWebhook("INV-PAID");
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.message).toBe("paid");
+    expect(body.message).toBe("accepted");
     expect(discordCallCount).toBe(1);
     const order = await getOrderById(getDb(), "ord-paid");
     expect(order!.status).toBe("paid");
@@ -187,7 +203,7 @@ test("paid with underpaid final_amount -> amount-mismatch, order stays pending",
     const res = await postWebhook("INV-UNDER");
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.message).toBe("amount-mismatch");
+    expect(body.message).toBe("accepted");
     expect(discordCallCount).toBe(0);
     const order = await getOrderById(getDb(), "ord-under");
     expect(order!.status).toBe("pending");
@@ -212,7 +228,7 @@ test("double webhook -> second returns 200 already-paid", async () => {
     const second = await postWebhook("INV-DOUBLE");
     expect(second.status).toBe(200);
     const body = await second.json();
-    expect(body.message).toBe("already-paid");
+    expect(body.message).toBe("accepted");
     expect(discordCallCount).toBe(1);
 
     const order = await getOrderById(getDb(), "ord-double");
@@ -236,7 +252,7 @@ test("expired order webhook -> 200 expired, no discord fetch", async () => {
     const res = await postWebhook("INV-EXPIRED");
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.message).toBe("expired");
+    expect(body.message).toBe("accepted");
     expect(discordCallCount).toBe(0);
     const order = await getOrderById(getDb(), "ord-expired");
     expect(order!.status).toBe("expired");
@@ -247,7 +263,7 @@ test("expired order webhook -> 200 expired, no discord fetch", async () => {
 test("order success without view token redirects home", async () => {
   if (skip()) return;
   await seedOrder("ord-view", "INV-VIEW");
-  await withEnv({ ...envVars, ORDER_VIEW_SECRET: "unit-view-secret" }, async () => {
+  await withEnv({ ...envVars, ORDER_VIEW_SECRET: "unit-view-secret-12" }, async () => {
     const res = await app.fetch(
       new Request("https://x.test/order/success?order=ord-view")
     );
@@ -260,7 +276,7 @@ test("order success with valid view token shows masked email", async () => {
   if (skip()) return;
   await seedOrder("ord-view-ok", "INV-VIEW-OK");
   await markPaid(getDb(), "ord-view-ok", new Date().toISOString(), 45123);
-  await withEnv({ ...envVars, ORDER_VIEW_SECRET: "unit-view-secret" }, async () => {
+  await withEnv({ ...envVars, ORDER_VIEW_SECRET: "unit-view-secret-12" }, async () => {
     const t = createOrderViewToken("ord-view-ok");
     const res = await app.fetch(
       new Request(`https://x.test/order/success?order=ord-view-ok&t=${t}`)
@@ -291,4 +307,131 @@ test("webhook rejects oversized content-length", async () => {
     })
   );
   expect(res.status).toBe(413);
+});
+
+test("unknown invoice writes no payment_events row", async () => {
+  if (skip()) return;
+  setupFetch({ bayarStatus: "pending" });
+  await withEnv(envVars, async () => {
+    const res = await postWebhook("INV-NEVER-EXISTED");
+    expect(res.status).toBe(200);
+    expect(await countAllPaymentEvents()).toBe(0);
+  });
+});
+
+test("unparseable body writes no payment_events row", async () => {
+  if (skip()) return;
+  setupFetch({ bayarStatus: "pending" });
+  await withEnv(envVars, async () => {
+    const res = await postWebhookRaw("not-json{{{");
+    expect(res.status).toBe(200);
+    expect(await countAllPaymentEvents()).toBe(0);
+  });
+});
+
+test("missing invoice_id writes no payment_events row", async () => {
+  if (skip()) return;
+  setupFetch({ bayarStatus: "pending" });
+  await withEnv(envVars, async () => {
+    const res = await postWebhookRaw(JSON.stringify({ status: "paid" }));
+    expect(res.status).toBe(200);
+    expect(await countAllPaymentEvents()).toBe(0);
+  });
+});
+
+test("anonymous flood of unknown invoices cannot grow payment_events", async () => {
+  if (skip()) return;
+  setupFetch({ bayarStatus: "pending" });
+  await withEnv(envVars, async () => {
+    for (let i = 0; i < 25; i++) await postWebhook(`INV-FLOOD-${i}`);
+    expect(await countAllPaymentEvents()).toBe(0);
+  });
+});
+
+test("unknown and expired invoices return identical bodies (no enumeration oracle)", async () => {
+  if (skip()) return;
+  await seedOrder("ord-oracle", "INV-ORACLE", {
+    expiresAt: new Date(Date.now() - 60_000).toISOString(),
+  });
+  setupFetch({ bayarStatus: "paid", bayarFinalAmount: 45000 });
+  await withEnv(envVars, async () => {
+    const known = await postWebhook("INV-ORACLE");
+    const unknown = await postWebhook("INV-NO-SUCH-INVOICE");
+    expect(known.status).toBe(unknown.status);
+    expect(await known.json()).toEqual(await unknown.json());
+  });
+});
+
+test("not-paid and amount-mismatch are indistinguishable to the caller", async () => {
+  if (skip()) return;
+  await seedOrder("ord-np", "INV-NP");
+  setupFetch({ bayarStatus: "pending" });
+  let notPaidStatus = 0;
+  let notPaidBody: unknown;
+  await withEnv(envVars, async () => {
+    const res = await postWebhook("INV-NP");
+    notPaidStatus = res.status;
+    notPaidBody = await res.json();
+  });
+
+  await truncateAll(getDb());
+  await seedOrder("ord-am", "INV-AM");
+  setupFetch({ bayarStatus: "paid", bayarFinalAmount: 1 });
+  await withEnv(envVars, async () => {
+    const res = await postWebhook("INV-AM");
+    expect(res.status).toBe(notPaidStatus);
+    expect(await res.json()).toEqual(notPaidBody);
+  });
+});
+
+test("uniform response still records precise reason in payment_events for admins", async () => {
+  if (skip()) return;
+  await seedOrder("ord-reason", "INV-REASON");
+  setupFetch({ bayarStatus: "paid", bayarFinalAmount: 1 });
+  await withEnv(envVars, async () => {
+    await postWebhook("INV-REASON");
+    const events = await listPaymentEventsForOrder(getDb(), "ord-reason");
+    expect(events.map((e) => e.message)).toContain("amount-mismatch");
+    const order = await getOrderById(getDb(), "ord-reason");
+    expect(order!.status).toBe("pending");
+  });
+});
+
+// --- Discord failure recovery: paid stays paid, notification retried on next webhook ---
+
+test("discord fails on first webhook -> order still paid, retry on next webhook notifies", async () => {
+  if (skip()) return;
+  await seedOrder("ord-dc-retry", "INV-DC-RETRY");
+  // First webhook: payment verified paid, but Discord returns 500
+  setupFetch({
+    bayarStatus: "paid",
+    bayarFinalAmount: 45000,
+    bayarPaidAt: "2026-07-24 12:30:00",
+    discordStatus: 500,
+  });
+  await withEnv(envVars, async () => {
+    const first = await postWebhook("INV-DC-RETRY");
+    expect(first.status).toBe(200);
+    expect(discordCallCount).toBe(1);
+
+    // Payment MUST be recorded as paid even though Discord failed
+    let order = await getOrderById(getDb(), "ord-dc-retry");
+    expect(order!.status).toBe("paid");
+    expect(order!.discordNotified).toBe(false); // not marked notified
+
+    // Second webhook delivery (bayar.gg retry): Discord now healthy
+    setupFetch({
+      bayarStatus: "paid",
+      bayarFinalAmount: 45000,
+      bayarPaidAt: "2026-07-24 12:30:00",
+      discordStatus: 204,
+    });
+    const second = await postWebhook("INV-DC-RETRY");
+    expect(second.status).toBe(200);
+    expect(discordCallCount).toBe(1); // retried once in this fetch session
+
+    order = await getOrderById(getDb(), "ord-dc-retry");
+    expect(order!.status).toBe("paid");
+    expect(order!.discordNotified).toBe(true); // now notified
+  });
 });

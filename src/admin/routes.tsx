@@ -61,6 +61,17 @@ import { OrderDetailPage } from "./pages/order-detail";
 import { UsersPage } from "./pages/users";
 import { PlansPage } from "./pages/plans";
 import { PlanEditPage } from "./pages/plan-edit";
+import {
+  listModelsFromDb,
+  getModelFromDb,
+  createModel,
+  updateModel,
+  deleteModel,
+  seedModelsIfEmpty,
+  isValidModelStatus,
+} from "../lib/models";
+import { ModelsPage } from "./pages/models";
+// import { ModelEditPage } from "./pages/model-edit";
 
 const admin = new Hono<AdminEnv>();
 
@@ -317,6 +328,33 @@ admin.post("/pricing-text", requireAdmin, async (c) => {
   }
   await updatePricingText(getDb(), { subtitle, note });
   return c.redirect(`${adminUrl("/plans")}?ok=text-updated`);
+});
+
+admin.get("/models", requireAdmin, async (c) => {
+  const models = await listModelsFromDb(getDb(), { includeHidden: true });
+  const html = renderToString(
+    <AdminLayout title="Models" user={c.get("adminUser")} path={adminUrl("/models")} csrfToken={c.get("csrfToken")}>
+      <ModelsPage
+        models={models}
+        error={c.req.query("error")}
+        ok={c.req.query("ok")}
+        csrfToken={c.get("csrfToken")}
+      />
+    </AdminLayout>
+  );
+  return c.html(`<!doctype html>${html}`);
+});
+
+admin.post("/models/:id/delete", requireAdmin, async (c) => {
+  const parsed = await parseAdminForm(c);
+  if (!parsed.ok) return parsed.response;
+  if (!rateLimitOk(clientIp(c), { windowMs: 60_000, max: 30, bucket: "admin-mutate" })) {
+    return c.text("Too many requests", 429);
+  }
+  const id = c.req.param("id");
+  const ok = await deleteModel(getDb(), id);
+  if (!ok) return c.redirect(`${adminUrl("/models")}?error=not-found`);
+  return c.redirect(`${adminUrl("/models")}?ok=deleted`);
 });
 
 admin.get("/users", requireAdmin, async (c) => {

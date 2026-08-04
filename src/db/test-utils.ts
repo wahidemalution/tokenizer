@@ -15,7 +15,7 @@ export async function closeSql(sql: Sql): Promise<void> {
 
 export async function truncateAll(db: AppDb): Promise<void> {
   await db.execute(
-    dsql`TRUNCATE TABLE payment_events, admin_sessions, orders, admin_users, models, plans, site_settings RESTART IDENTITY CASCADE`
+    dsql`TRUNCATE TABLE payment_events, admin_sessions, orders, admin_users, models RESTART IDENTITY CASCADE`
   );
 }
 

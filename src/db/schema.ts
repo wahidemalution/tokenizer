@@ -110,3 +110,18 @@ export const siteSettings = pgTable("site_settings", {
   value: text("value").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
 });
+
+export const models = pgTable(
+  "models",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    provider: text("provider").notNull(),
+    status: text("status").notNull().default("available"),
+    isVisible: boolean("is_visible").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("models_visible_sort_idx").on(t.isVisible, t.sortOrder)]
+);

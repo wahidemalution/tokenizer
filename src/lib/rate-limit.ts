@@ -17,3 +17,7 @@ export function rateLimitOk(
   hits.set(key, arr);
   return true;
 }
+
+export function _resetRateLimitForTests(): void {
+  hits.clear();
+}

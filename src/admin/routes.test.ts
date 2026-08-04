@@ -11,6 +11,7 @@ import { createOrder, markPaid } from "../lib/orders";
 import { seedPlansIfEmpty } from "../lib/plans";
 import type { Plan } from "../lib/plans";
 import { seedModelsIfEmpty, createModel } from "../lib/models";
+import { _resetRateLimitForTests } from "../lib/rate-limit";
 import { CSRF_COOKIE, CSRF_FIELD } from "../lib/auth/csrf";
 import { Hono } from "hono";
 import { adminRoutes } from "./routes";
@@ -53,6 +54,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   if (!url) return;
+  _resetRateLimitForTests();
   await truncateAll(getDb());
 });
 

@@ -71,7 +71,7 @@ import {
   isValidModelStatus,
 } from "../lib/models";
 import { ModelsPage } from "./pages/models";
-// import { ModelEditPage } from "./pages/model-edit";
+import { ModelEditPage } from "./pages/model-edit";
 
 const admin = new Hono<AdminEnv>();
 
@@ -355,6 +355,102 @@ admin.post("/models/:id/delete", requireAdmin, async (c) => {
   const ok = await deleteModel(getDb(), id);
   if (!ok) return c.redirect(`${adminUrl("/models")}?error=not-found`);
   return c.redirect(`${adminUrl("/models")}?ok=deleted`);
+});
+
+admin.get("/models/new", requireAdmin, async (c) => {
+  const html = renderToString(
+    <AdminLayout
+      title="Tambah model"
+      user={c.get("adminUser")}
+      path={adminUrl("/models")}
+      csrfToken={c.get("csrfToken")}
+    >
+      <ModelEditPage
+        model={null}
+        error={c.req.query("error")}
+        csrfToken={c.get("csrfToken")}
+      />
+    </AdminLayout>
+  );
+  return c.html(`<!doctype html>${html}`);
+});
+
+admin.post("/models", requireAdmin, async (c) => {
+  const parsed = await parseAdminForm(c);
+  if (!parsed.ok) return parsed.response;
+  if (!rateLimitOk(clientIp(c), { windowMs: 60_000, max: 30, bucket: "admin-mutate" })) {
+    return c.text("Too many requests", 429);
+  }
+  const body = parsed.body;
+  const name = String(body.name ?? "").trim();
+  const provider = String(body.provider ?? "").trim();
+  const status = String(body.status ?? "").trim();
+  const isVisible = body.is_visible === "1" || body.is_visible === "on";
+  const sortOrder = Number(body.sort_order ?? 0);
+
+  if (!name) return c.redirect(`${adminUrl("/models/new")}?error=name-empty`);
+  if (!provider) return c.redirect(`${adminUrl("/models/new")}?error=provider-empty`);
+  if (!isValidModelStatus(status)) return c.redirect(`${adminUrl("/models/new")}?error=invalid-status`);
+
+  await createModel(getDb(), {
+    name,
+    provider,
+    status: status as never,
+    isVisible,
+    sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+  });
+  return c.redirect(`${adminUrl("/models")}?ok=created`);
+});
+
+admin.get("/models/:id/edit", requireAdmin, async (c) => {
+  const id = c.req.param("id");
+  const model = await getModelFromDb(getDb(), id);
+  if (!model) return c.notFound();
+  const html = renderToString(
+    <AdminLayout
+      title={`Edit ${model.name}`}
+      user={c.get("adminUser")}
+      path={adminUrl("/models")}
+      csrfToken={c.get("csrfToken")}
+    >
+      <ModelEditPage
+        model={model}
+        error={c.req.query("error")}
+        ok={c.req.query("ok")}
+        csrfToken={c.get("csrfToken")}
+      />
+    </AdminLayout>
+  );
+  return c.html(`<!doctype html>${html}`);
+});
+
+admin.post("/models/:id", requireAdmin, async (c) => {
+  const parsed = await parseAdminForm(c);
+  if (!parsed.ok) return parsed.response;
+  if (!rateLimitOk(clientIp(c), { windowMs: 60_000, max: 30, bucket: "admin-mutate" })) {
+    return c.text("Too many requests", 429);
+  }
+  const id = c.req.param("id");
+  const body = parsed.body;
+  const name = String(body.name ?? "").trim();
+  const provider = String(body.provider ?? "").trim();
+  const status = String(body.status ?? "").trim();
+  const isVisible = body.is_visible === "1" || body.is_visible === "on";
+  const sortOrder = Number(body.sort_order ?? 0);
+
+  if (!name) return c.redirect(`${adminUrl(`/models/${id}/edit`)}?error=name-empty`);
+  if (!provider) return c.redirect(`${adminUrl(`/models/${id}/edit`)}?error=provider-empty`);
+  if (!isValidModelStatus(status)) return c.redirect(`${adminUrl(`/models/${id}/edit`)}?error=invalid-status`);
+
+  const updated = await updateModel(getDb(), id, {
+    name,
+    provider,
+    status: status as never,
+    isVisible,
+    sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+  });
+  if (!updated) return c.notFound();
+  return c.redirect(`${adminUrl(`/models/${id}/edit`)}?ok=updated`);
 });
 
 admin.get("/users", requireAdmin, async (c) => {
